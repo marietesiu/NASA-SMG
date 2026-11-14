@@ -1,0 +1,164 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://rocket_launch.gd" id="1_launch"]
+[ext_resource type="Script" path="res://openrocket_sim.gd" id="2_sim"]
+[ext_resource type="Script" path="res://rocket.gd" id="3_rocket"]
+[ext_resource type="Script" path="res://launch_camera.gd" id="4_camera"]
+[ext_resource type="Script" path="res://gmat_orbit.gd" id="5_orbit"]
+[ext_resource type="Script" path="res://altitude_bar.gd" id="6_bar"]
+[ext_resource type="Shader" path="res://sky.gdshader" id="7_sky"]
+[ext_resource type="Texture2D" path="res://textures/stars_sky.jpg" id="8_stars"]
+[ext_resource type="Texture2D" path="res://textures/earth_8k.jpg" id="9_earth"]
+
+[sub_resource type="ShaderMaterial" id="Sky_mat"]
+shader = ExtResource("7_sky")
+shader_parameter/stars = ExtResource("8_stars")
+shader_parameter/zoom = 4.0
+shader_parameter/star_brightness = 3.0
+shader_parameter/star_amount = 0.0
+shader_parameter/top_color = Color(0.2, 0.42, 0.78, 1)
+shader_parameter/horizon_color = Color(0.66, 0.78, 0.9, 1)
+
+[sub_resource type="Sky" id="Sky_res"]
+sky_material = SubResource("Sky_mat")
+
+[sub_resource type="Environment" id="Env_res"]
+background_mode = 2
+sky = SubResource("Sky_res")
+ambient_light_source = 3
+tonemap_mode = 2
+
+[sub_resource type="FastNoiseLite" id="Ground_noise"]
+frequency = 0.02
+
+[sub_resource type="Gradient" id="Ground_gradient"]
+colors = PackedColorArray(0.2, 0.38, 0.16, 1, 0.42, 0.58, 0.26, 1)
+
+[sub_resource type="NoiseTexture2D" id="Ground_tex"]
+seamless = true
+color_ramp = SubResource("Ground_gradient")
+noise = SubResource("Ground_noise")
+
+[sub_resource type="StandardMaterial3D" id="Ground_mat"]
+albedo_texture = SubResource("Ground_tex")
+roughness = 1.0
+uv1_scale = Vector3(600, 600, 600)
+
+[sub_resource type="PlaneMesh" id="Ground_mesh"]
+material = SubResource("Ground_mat")
+size = Vector2(60000, 60000)
+
+[sub_resource type="StandardMaterial3D" id="Pad_mat"]
+albedo_color = Color(0.45, 0.45, 0.48, 1)
+roughness = 0.8
+
+[sub_resource type="CylinderMesh" id="Pad_mesh"]
+material = SubResource("Pad_mat")
+top_radius = 30.0
+bottom_radius = 30.0
+height = 0.5
+
+[sub_resource type="StandardMaterial3D" id="Earth_mat"]
+albedo_texture = ExtResource("9_earth")
+roughness = 1.0
+
+[sub_resource type="SphereMesh" id="Earth_mesh"]
+material = SubResource("Earth_mat")
+radius = 1.0
+height = 2.0
+radial_segments = 128
+rings = 64
+
+[node name="RocketLaunch" type="Node3D"]
+script = ExtResource("1_launch")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_res")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.8660254, -0.25, 0.4330127, 0, 0.8660254, 0.5, -0.5, -0.4330127, 0.75, 0, 10, 0)
+shadow_enabled = true
+directional_shadow_max_distance = 1500.0
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("Ground_mesh")
+
+[node name="Pad" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+mesh = SubResource("Pad_mesh")
+
+[node name="Earth" type="MeshInstance3D" parent="."]
+visible = false
+mesh = SubResource("Earth_mesh")
+
+[node name="OpenRocketSim" type="Node" parent="."]
+script = ExtResource("2_sim")
+
+[node name="GmatOrbit" type="Node" parent="."]
+script = ExtResource("5_orbit")
+
+[node name="Rocket" type="Node3D" parent="."]
+script = ExtResource("3_rocket")
+
+[node name="LaunchCamera" type="Camera3D" parent="." node_paths=PackedStringArray("target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 300, 10, 0)
+current = true
+fov = 60.0
+near = 0.5
+far = 100000.0
+script = ExtResource("4_camera")
+target = NodePath("../Rocket")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Telemetry" type="Label" parent="HUD"]
+unique_name_in_owner = true
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 400.0
+offset_bottom = 180.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 24
+
+[node name="AltitudeBar" type="Control" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_left = 48.0
+offset_top = 190.0
+offset_right = 300.0
+offset_bottom = -110.0
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_bar")
+
+[node name="Status" type="Label" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -90.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 30
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Banner" type="Label" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 72
+text = "Successful Launch"
+horizontal_alignment = 1
+vertical_alignment = 1

@@ -1,0 +1,1151 @@
+{
+  "meta": {
+    "title": "3D variable-mass, multi-stage rocket ascent model (liftoff to atmosphere exit)",
+    "version": "1.1",
+    "units": "SI (m, kg, s, N, Pa, K, rad unless a name ends in _deg)",
+    "scope": "Powered ascent from the launch pad until the vehicle leaves the sensible atmosphere (nominal exit h = 120 km; Karman line 100 km is logged as an event). Orbit insertion is outside the scope.",
+    "model_type": "Hybrid system: continuous ODEs (7 states) + discrete events (ignition, burnout, separation, fairing jettison, termination).",
+    "primary_frame": "ECI (Earth-Centred Inertial); atmosphere rotates rigidly with the Earth.",
+    "state_vector": "x = [r(3), v(3), m]",
+    "assumptions": [
+      "Spherical Earth of radius R_E for altitude and local frame (WGS-84 ellipsoid is a listed extension).",
+      "Gravity = point mass + J2 term; no third-body, no tides.",
+      "Atmosphere: US Standard 1976 up to 86 km geometric, isothermal exponential extrapolation above; no wind (wind is an optional term).",
+      "Vehicle is a point mass with 3 translational DOF; attitude is prescribed by the guidance law (thrust direction), angle of attack alpha = 0 during gravity turn so normal force N = 0.",
+      "Exhaust velocity is constant per engine in vacuum (Isp_vac); nozzle back-pressure loss -p_a*A_e is included.",
+      "Throttle tau(t) scales the propellant mass flow linearly; Isp_vac is constant with throttle.",
+      "Staging is instantaneous: the discarded mass leaves with the vehicle velocity (momentum conserved) unless a separation delta-v is specified.",
+      "Dropped stage is propagated as an independent ballistic body (constant mass m_dry_1, tumbling C_D = 1.0, reference area A_ref_drop), see equation E26. The reference area is that of the discarded stage, not of the whole rocket.",
+      "Spherical R_E is used for altitude while gravity includes J2 (an oblate-potential harmonic). This is the standard simplification: the altitude differs from the WGS-84 value by a few km at the launch latitude, the dynamics are unaffected. Switching to WGS-84 only for the h computation is a listed extension.",
+      "Thrust is clipped at T >= 0, but mdot_p keeps being consumed when the clip is active (mass would vanish with no thrust). It never happens for this vehicle (T > 0 throughout, logged as clip_count = 0); the implementation must assert or log a flag if T is ever clipped, e.g. with a heavily over-expanded nozzle or a large A_e.",
+      "The thrust direction is C0-continuous everywhere and C1-continuous at the end of the blend; the only derivative discontinuities are at t_v and are handled by an integration restart."
+    ],
+    "example_vehicle_note": "The example vehicle is a GENERIC two-stage LOX/RP-1 launcher with illustrative numbers. It is not a model of any real rocket.",
+    "changelog": [
+      "1.1: guidance E17/E18 replaced by a continuous steering law (smooth pitch-over + smooth blend into the gravity turn); no discontinuity in u_T.",
+      "1.1: dropped stage now has an explicit second IVP (E26) with its own reference area A_ref_drop.",
+      "1.1: throttle breakpoints and the pitch-over start declared as non-terminal integration restarts.",
+      "1.1: documented thrust clipping, the |v_rel|->0 guard, the spherical-Earth + J2 inconsistency and the fairing heat-flux threshold.",
+      "1.1: example results regenerated with the corrected model (DOP853, same tolerances)."
+    ]
+  },
+  "constants": {
+    "mu": {
+      "symbol": "mu",
+      "name": "Earth gravitational parameter",
+      "definition": "G*M_Earth",
+      "unit": "m^3/s^2",
+      "type": "scalar",
+      "value": 398600441800000.0
+    },
+    "R_E": {
+      "symbol": "R_E",
+      "name": "Earth radius (mean, spherical model)",
+      "definition": "Radius used to turn |r| into altitude",
+      "unit": "m",
+      "type": "scalar",
+      "value": 6371000.0
+    },
+    "omega_E": {
+      "symbol": "omega_E",
+      "name": "Earth rotation rate",
+      "definition": "Sidereal rotation rate about +Z_I",
+      "unit": "rad/s",
+      "type": "scalar",
+      "value": 7.2921159e-05
+    },
+    "g0": {
+      "symbol": "g0",
+      "name": "Standard gravity",
+      "definition": "Conversion constant in Isp definition (not local g)",
+      "unit": "m/s^2",
+      "type": "scalar",
+      "value": 9.80665
+    },
+    "J2": {
+      "symbol": "J2",
+      "name": "Second zonal harmonic",
+      "definition": "Oblateness coefficient of Earth gravity",
+      "unit": "-",
+      "type": "scalar",
+      "value": 0.00108262668
+    },
+    "R_air": {
+      "symbol": "R_air",
+      "name": "Specific gas constant of air",
+      "definition": "R*/M for dry air",
+      "unit": "J/(kg K)",
+      "type": "scalar",
+      "value": 287.053
+    },
+    "gamma_air": {
+      "symbol": "gamma_air",
+      "name": "Heat-capacity ratio of air",
+      "definition": "cp/cv",
+      "unit": "-",
+      "type": "scalar",
+      "value": 1.4
+    },
+    "p0": {
+      "symbol": "p0",
+      "name": "Sea-level pressure",
+      "definition": "ISA reference pressure",
+      "unit": "Pa",
+      "type": "scalar",
+      "value": 101325.0
+    },
+    "R_geop": {
+      "symbol": "R_geop",
+      "name": "Geopotential reference radius",
+      "definition": "Used for geometric -> geopotential altitude",
+      "unit": "m",
+      "type": "scalar",
+      "value": 6356766.0
+    },
+    "h_karman": {
+      "symbol": "h_karman",
+      "name": "Karman line",
+      "definition": "Conventional boundary of space (event only)",
+      "unit": "m",
+      "type": "scalar",
+      "value": 100000.0
+    },
+    "h_exit": {
+      "symbol": "h_exit",
+      "name": "Atmosphere exit altitude",
+      "definition": "Termination altitude of the model",
+      "unit": "m",
+      "type": "scalar",
+      "value": 120000.0
+    },
+    "q_heat_fairing": {
+      "symbol": "q_heat_fairing",
+      "name": "Free-molecular heat-flux threshold",
+      "definition": "Fairing is jettisoned when 0.5*rho*|v_rel|^3 falls below it (and h > 60 km). It is a design/tuning parameter: 1135 W/m^2 is low (0.5*rho*V^3 with rho ~ 1e-7 kg/m^3 and V ~ 3000 m/s is already ~1350 W/m^2), so in this example the fairing leaves late, near 110 km, just before the end of the model.",
+      "unit": "W/m^2",
+      "type": "scalar",
+      "value": 1135.0
+    }
+  },
+  "coordinate_frames": {
+    "ECI": "Origin at Earth centre; X_I toward vernal equinox (or any fixed direction), Z_I along spin axis, Y_I = Z_I x X_I. Inertial: Newton's laws apply directly.",
+    "ECEF": "Same origin, rotates with Earth: r_ecef = R_z(-omega_E t) r_eci. Used to define the launch site and to draw trajectories relative to the ground.",
+    "ENU_local": "Local triad at position r: up u = r/|r|, east e = (Z_I x u)/|Z_I x u|, north n = u x e. Used to define thrust pitch and azimuth.",
+    "launch_site_at_t0": "ECI and ECEF coincide at t = 0 by convention (longitude lon0 measured from X_I)."
+  },
+  "state_variables": [
+    {
+      "symbol": "r",
+      "name": "Position vector",
+      "definition": "Vehicle position in ECI",
+      "unit": "m",
+      "type": "vector",
+      "shape": [
+        3
+      ],
+      "components": [
+        "x",
+        "y",
+        "z"
+      ]
+    },
+    {
+      "symbol": "v",
+      "name": "Velocity vector (inertial)",
+      "definition": "dr/dt in ECI",
+      "unit": "m/s",
+      "type": "vector",
+      "shape": [
+        3
+      ],
+      "components": [
+        "vx",
+        "vy",
+        "vz"
+      ]
+    },
+    {
+      "symbol": "m",
+      "name": "Instantaneous total mass",
+      "definition": "Everything currently attached to the vehicle: payload + fairing + all remaining stages (dry + propellant)",
+      "unit": "kg",
+      "type": "scalar"
+    },
+    {
+      "symbol": "t",
+      "name": "Time",
+      "definition": "Seconds since liftoff (independent variable)",
+      "unit": "s",
+      "type": "scalar"
+    },
+    {
+      "symbol": "k",
+      "name": "Active stage index",
+      "definition": "Discrete variable, 1..N; changes only at separation events",
+      "unit": "-",
+      "type": "integer"
+    }
+  ],
+  "variables": {
+    "kinematics_and_geometry": [
+      {
+        "symbol": "h",
+        "name": "Geometric altitude",
+        "definition": "|r| - R_E",
+        "unit": "m",
+        "type": "scalar"
+      },
+      {
+        "symbol": "v_rel",
+        "name": "Velocity relative to the air",
+        "definition": "v - omega_E x r (+ optional -v_wind)",
+        "unit": "m/s",
+        "type": "vector",
+        "shape": [
+          3
+        ]
+      },
+      {
+        "symbol": "V_r",
+        "name": "Air-relative speed",
+        "definition": "|v_rel|",
+        "unit": "m/s",
+        "type": "scalar"
+      },
+      {
+        "symbol": "u_hat, e_hat, n_hat",
+        "name": "Local up, east, north unit vectors",
+        "definition": "Local frame at r",
+        "unit": "-",
+        "type": "vector",
+        "shape": [
+          3
+        ]
+      },
+      {
+        "symbol": "gamma_fp",
+        "name": "Flight-path angle (air-relative)",
+        "definition": "asin( (v_rel . u_hat)/|v_rel| )",
+        "unit": "rad",
+        "type": "scalar"
+      },
+      {
+        "symbol": "lat, lon",
+        "name": "Launch-site geodetic (spherical) latitude and longitude",
+        "definition": "Initial position angles",
+        "unit": "rad",
+        "type": "scalar"
+      },
+      {
+        "symbol": "psi",
+        "name": "Launch azimuth",
+        "definition": "Heading of the horizontal thrust component, clockwise from north",
+        "unit": "rad",
+        "type": "scalar"
+      },
+      {
+        "symbol": "i_target",
+        "name": "Target orbital inclination",
+        "definition": "Used to compute the launch azimuth",
+        "unit": "rad",
+        "type": "scalar"
+      },
+      {
+        "symbol": "y_s",
+        "name": "State of the dropped stage",
+        "definition": "[r_s(3), v_s(3)] ECI, started at EV3 from the vehicle state",
+        "unit": "m, m/s",
+        "type": "vector",
+        "shape": [
+          6
+        ]
+      }
+    ],
+    "mass_and_staging": [
+      {
+        "symbol": "N",
+        "name": "Number of stages",
+        "definition": "Stages are numbered in firing order",
+        "unit": "-",
+        "type": "integer"
+      },
+      {
+        "symbol": "m_pl",
+        "name": "Payload mass",
+        "definition": "Payload plus adapter",
+        "unit": "kg",
+        "type": "scalar"
+      },
+      {
+        "symbol": "m_fair",
+        "name": "Fairing mass",
+        "definition": "Jettisoned at the fairing event",
+        "unit": "kg",
+        "type": "scalar"
+      },
+      {
+        "symbol": "m_dry_j",
+        "name": "Dry (structural) mass of stage j",
+        "definition": "Everything of stage j that is not propellant (tanks, engines, interstage)",
+        "unit": "kg",
+        "type": "scalar"
+      },
+      {
+        "symbol": "m_prop_j",
+        "name": "Loaded propellant mass of stage j",
+        "definition": "Oxidizer + fuel at ignition",
+        "unit": "kg",
+        "type": "scalar"
+      },
+      {
+        "symbol": "m_prop_k(t)",
+        "name": "Remaining propellant of the active stage",
+        "definition": "m_prop_k - integral of mdot_p dt",
+        "unit": "kg",
+        "type": "scalar"
+      },
+      {
+        "symbol": "m0_k",
+        "name": "Mass at ignition of stage k",
+        "definition": "Total vehicle mass at the start of burn k",
+        "unit": "kg",
+        "type": "scalar"
+      },
+      {
+        "symbol": "mf_k",
+        "name": "Mass at burnout of stage k",
+        "definition": "m0_k - m_prop_k",
+        "unit": "kg",
+        "type": "scalar"
+      },
+      {
+        "symbol": "Delta_m_sep_k",
+        "name": "Mass discarded at separation k",
+        "definition": "m_dry_k (+ optional fairing)",
+        "unit": "kg",
+        "type": "scalar"
+      },
+      {
+        "symbol": "lambda_k",
+        "name": "Stage mass ratio",
+        "definition": "m0_k / mf_k",
+        "unit": "-",
+        "type": "scalar"
+      },
+      {
+        "symbol": "epsilon_k",
+        "name": "Structural coefficient",
+        "definition": "m_dry_k / (m_dry_k + m_prop_k)",
+        "unit": "-",
+        "type": "scalar"
+      }
+    ],
+    "propulsion": [
+      {
+        "symbol": "tau(t)",
+        "name": "Throttle setting",
+        "definition": "0..1; piecewise-linear table in time (example: max-Q bucket)",
+        "unit": "-",
+        "type": "scalar"
+      },
+      {
+        "symbol": "mdot_max_k",
+        "name": "Nominal propellant mass flow of stage k",
+        "definition": "T_vac_k / (Isp_vac_k * g0)",
+        "unit": "kg/s",
+        "type": "scalar"
+      },
+      {
+        "symbol": "mdot_p",
+        "name": "Actual propellant mass flow",
+        "definition": "tau * mdot_max_k  (zero when engine is off)",
+        "unit": "kg/s",
+        "type": "scalar"
+      },
+      {
+        "symbol": "Isp_vac_k",
+        "name": "Vacuum specific impulse",
+        "definition": "Thrust per unit weight flow in vacuum",
+        "unit": "s",
+        "type": "scalar"
+      },
+      {
+        "symbol": "T_vac_k",
+        "name": "Vacuum thrust at tau = 1",
+        "definition": "Rated vacuum thrust of all engines of stage k",
+        "unit": "N",
+        "type": "scalar"
+      },
+      {
+        "symbol": "A_e_k",
+        "name": "Total nozzle exit area",
+        "definition": "Sum over engines of stage k",
+        "unit": "m^2",
+        "type": "scalar"
+      },
+      {
+        "symbol": "v_e",
+        "name": "Effective exhaust velocity (vacuum)",
+        "definition": "Isp_vac * g0",
+        "unit": "m/s",
+        "type": "scalar"
+      },
+      {
+        "symbol": "T",
+        "name": "Thrust magnitude",
+        "definition": "mdot_p * v_e - p_a * A_e, clipped at >= 0 (clipping flagged in the log; mdot_p is not reduced when clipped)",
+        "unit": "N",
+        "type": "scalar"
+      },
+      {
+        "symbol": "u_T",
+        "name": "Thrust unit vector (body axis)",
+        "definition": "Output of the guidance law (continuous in time)",
+        "unit": "-",
+        "type": "vector",
+        "shape": [
+          3
+        ]
+      },
+      {
+        "symbol": "T_vec",
+        "name": "Thrust vector",
+        "definition": "T * u_T",
+        "unit": "N",
+        "type": "vector",
+        "shape": [
+          3
+        ]
+      },
+      {
+        "symbol": "delta(t)",
+        "name": "Pitch-over angle from local vertical",
+        "definition": "Smooth kick law delta_max*(1-exp(-(t-t_v)/tau_pitch)), applied in the azimuth plane",
+        "unit": "rad",
+        "type": "scalar"
+      },
+      {
+        "symbol": "s(t)",
+        "name": "Gravity-turn blend weight",
+        "definition": "Smoothstep 3x^2-2x^3 with x=(t-t_blend0)/t_blend, 0 -> 1",
+        "unit": "-",
+        "type": "scalar"
+      }
+    ],
+    "aerodynamics_and_atmosphere": [
+      {
+        "symbol": "rho(h)",
+        "name": "Air density",
+        "definition": "p / (R_air * T_air)",
+        "unit": "kg/m^3",
+        "type": "scalar"
+      },
+      {
+        "symbol": "p_a(h)",
+        "name": "Ambient static pressure",
+        "definition": "ISA barometric formula",
+        "unit": "Pa",
+        "type": "scalar"
+      },
+      {
+        "symbol": "T_air(h)",
+        "name": "Ambient temperature",
+        "definition": "ISA layers",
+        "unit": "K",
+        "type": "scalar"
+      },
+      {
+        "symbol": "a_s(h)",
+        "name": "Speed of sound",
+        "definition": "sqrt(gamma_air * R_air * T_air)",
+        "unit": "m/s",
+        "type": "scalar"
+      },
+      {
+        "symbol": "H",
+        "name": "Geopotential altitude",
+        "definition": "R_geop*h/(R_geop+h)",
+        "unit": "m",
+        "type": "scalar"
+      },
+      {
+        "symbol": "M",
+        "name": "Mach number",
+        "definition": "V_r / a_s",
+        "unit": "-",
+        "type": "scalar"
+      },
+      {
+        "symbol": "q",
+        "name": "Dynamic pressure",
+        "definition": "0.5 * rho * V_r^2",
+        "unit": "Pa",
+        "type": "scalar"
+      },
+      {
+        "symbol": "C_D(M)",
+        "name": "Drag coefficient",
+        "definition": "Interpolated from a Mach table",
+        "unit": "-",
+        "type": "scalar"
+      },
+      {
+        "symbol": "A_ref",
+        "name": "Aerodynamic reference area",
+        "definition": "Frontal area of the core (pi d^2 / 4)",
+        "unit": "m^2",
+        "type": "scalar"
+      },
+      {
+        "symbol": "D",
+        "name": "Drag force vector",
+        "definition": "-0.5 rho C_D A_ref V_r v_rel",
+        "unit": "N",
+        "type": "vector",
+        "shape": [
+          3
+        ]
+      },
+      {
+        "symbol": "alpha",
+        "name": "Angle of attack",
+        "definition": "Angle between body axis u_T and v_rel (0 for a gravity turn)",
+        "unit": "rad",
+        "type": "scalar"
+      },
+      {
+        "symbol": "C_Nalpha",
+        "name": "Normal-force slope",
+        "definition": "dC_N/dalpha (optional term; unused when alpha = 0)",
+        "unit": "1/rad",
+        "type": "scalar"
+      },
+      {
+        "symbol": "N_vec",
+        "name": "Normal (lift) force",
+        "definition": "q A_ref C_Nalpha alpha * n_hat_alpha",
+        "unit": "N",
+        "type": "vector",
+        "shape": [
+          3
+        ]
+      },
+      {
+        "symbol": "A_ref_drop",
+        "name": "Reference area of the dropped stage",
+        "definition": "Cross-section of discarded stage 1 used for its ballistic drag (here equal to the core cross-section, pi d^2/4 with the same d as A_ref)",
+        "unit": "m^2",
+        "type": "scalar"
+      }
+    ],
+    "gravity": [
+      {
+        "symbol": "g",
+        "name": "Gravity acceleration vector",
+        "definition": "-mu r/|r|^3 + J2 term",
+        "unit": "m/s^2",
+        "type": "vector",
+        "shape": [
+          3
+        ]
+      },
+      {
+        "symbol": "g_J2",
+        "name": "J2 oblateness acceleration",
+        "definition": "See equation E7",
+        "unit": "m/s^2",
+        "type": "vector",
+        "shape": [
+          3
+        ]
+      }
+    ],
+    "performance_and_diagnostics": [
+      {
+        "symbol": "n_load",
+        "name": "Specific force (load factor)",
+        "definition": "|T_vec + D + N_vec| / (m g0)",
+        "unit": "g",
+        "type": "scalar"
+      },
+      {
+        "symbol": "q_heat",
+        "name": "Free-molecular heat flux",
+        "definition": "0.5 rho V_r^3",
+        "unit": "W/m^2",
+        "type": "scalar"
+      },
+      {
+        "symbol": "eps_orb",
+        "name": "Specific orbital energy",
+        "definition": "|v|^2/2 - mu/|r|",
+        "unit": "J/kg",
+        "type": "scalar"
+      },
+      {
+        "symbol": "Delta_v_ideal",
+        "name": "Ideal (Tsiolkovsky) delta-v",
+        "definition": "sum_k Isp_vac_k g0 ln(m0_k/mf_k)",
+        "unit": "m/s",
+        "type": "scalar"
+      },
+      {
+        "symbol": "Delta_v_grav",
+        "name": "Gravity loss",
+        "definition": "integral of -g . v_hat dt",
+        "unit": "m/s",
+        "type": "scalar"
+      },
+      {
+        "symbol": "Delta_v_drag",
+        "name": "Drag loss",
+        "definition": "integral of -D . v_hat / m dt",
+        "unit": "m/s",
+        "type": "scalar"
+      },
+      {
+        "symbol": "Delta_v_bp",
+        "name": "Back-pressure loss",
+        "definition": "integral of p_a A_e / m dt",
+        "unit": "m/s",
+        "type": "scalar"
+      },
+      {
+        "symbol": "Delta_v_steer",
+        "name": "Steering loss",
+        "definition": "integral of (T/m)(1 - u_T . v_hat) dt",
+        "unit": "m/s",
+        "type": "scalar"
+      }
+    ]
+  },
+  "equations": [
+    {
+      "id": "E1",
+      "name": "Position kinematics",
+      "latex": "\\dot{\\mathbf r}=\\mathbf v",
+      "expression": "dr/dt = v"
+    },
+    {
+      "id": "E2",
+      "name": "Translational dynamics (variable mass)",
+      "latex": "m\\,\\dot{\\mathbf v}=\\mathbf T+\\mathbf D+\\mathbf N+m\\,\\mathbf g(\\mathbf r)",
+      "expression": "dv/dt = g(r) + (T_vec + D + N_vec)/m",
+      "notes": "Obtained from momentum balance of a body that expels mass with exhaust velocity u_e relative to itself: m dv/dt = F_ext + (dm/dt) u_e. The term (dm/dt) u_e is the thrust, see E8."
+    },
+    {
+      "id": "E3",
+      "name": "Mass flow (variable mass)",
+      "latex": "\\dot m=-\\dot m_p=-\\tau(t)\\,\\dot m_{max,k}",
+      "expression": "dm/dt = -tau(t) * mdot_max_k  (engine on),  0 (engine off)"
+    },
+    {
+      "id": "E4",
+      "name": "Mass bookkeeping",
+      "latex": "m(t)=m_{pl}+m_{fair}+\\sum_{j>k}(m_{dry,j}+m_{prop,j})+m_{dry,k}+m_{prop,k}(t)",
+      "expression": "m = payload + fairing + sum_{j>k}(dry_j+prop_j) + dry_k + prop_k(t)"
+    },
+    {
+      "id": "E5",
+      "name": "Mass flow from thrust rating",
+      "latex": "\\dot m_{max,k}=\\dfrac{T_{vac,k}}{I_{sp,vac,k}\\,g_0}",
+      "expression": "mdot_max = T_vac/(Isp_vac*g0)"
+    },
+    {
+      "id": "E6",
+      "name": "Gravity (point mass)",
+      "latex": "\\mathbf g_0=-\\mu\\,\\dfrac{\\mathbf r}{|\\mathbf r|^{3}}",
+      "expression": "g_pt = -mu*r/|r|^3"
+    },
+    {
+      "id": "E7",
+      "name": "J2 oblateness acceleration",
+      "latex": "\\mathbf g_{J2}=\\dfrac{3}{2}J_2\\dfrac{\\mu}{r^2}\\left(\\dfrac{R_E}{r}\\right)^2\\begin{bmatrix}(5z^2/r^2-1)\\,x/r\\\\(5z^2/r^2-1)\\,y/r\\\\(5z^2/r^2-3)\\,z/r\\end{bmatrix}",
+      "expression": "g_J2 = 1.5*J2*mu/r^2*(R_E/r)^2*[(5z^2/r^2-1)x/r, (5z^2/r^2-1)y/r, (5z^2/r^2-3)z/r];  g = g_pt + g_J2"
+    },
+    {
+      "id": "E8",
+      "name": "Thrust with back-pressure",
+      "latex": "\\mathbf T=\\left(\\dot m_p\\,I_{sp,vac}\\,g_0-p_a(h)\\,A_e\\right)\\hat{\\mathbf u}_T",
+      "expression": "T = max(mdot_p*Isp_vac*g0 - p_a*A_e, 0);  T_vec = T*u_T",
+      "notes": "General form T = mdot_p*v_e + (p_e - p_a)*A_e; with p_e*A_e proportional to mdot_p this collapses to the vacuum thrust minus p_a*A_e. The max(.,0) clip is valid for this vehicle (T stays > 0 in the whole flight, clip_count = 0), but note that if T is clipped mdot_p keeps being consumed while the net thrust is 0: propellant would be burned with no effect. Implementations must assert or log a flag when the clip is active, especially with an over-expanded nozzle or a large A_e."
+    },
+    {
+      "id": "E9",
+      "name": "Air-relative velocity",
+      "latex": "\\mathbf v_{rel}=\\mathbf v-\\boldsymbol\\omega_E\\times\\mathbf r\\;(-\\,\\mathbf v_{wind})",
+      "expression": "v_rel = v - cross([0,0,omega_E], r)"
+    },
+    {
+      "id": "E10",
+      "name": "Aerodynamic drag",
+      "latex": "\\mathbf D=-\\tfrac12\\,\\rho(h)\\,C_D(M)\\,A_{ref}\\,|\\mathbf v_{rel}|\\,\\mathbf v_{rel}",
+      "expression": "D = -0.5*rho*C_D(M)*A_ref*|v_rel|*v_rel"
+    },
+    {
+      "id": "E11",
+      "name": "Dynamic pressure and Mach number",
+      "latex": "q=\\tfrac12\\rho\\,|\\mathbf v_{rel}|^2,\\qquad M=\\dfrac{|\\mathbf v_{rel}|}{a_s(h)}",
+      "expression": "q = 0.5*rho*Vr^2;  M = Vr/a_s"
+    },
+    {
+      "id": "E12",
+      "name": "Normal force (optional)",
+      "latex": "\\mathbf N=q\\,A_{ref}\\,C_{N\\alpha}\\,\\alpha\\,\\hat{\\mathbf n}_\\alpha",
+      "expression": "N = q*A_ref*C_Nalpha*alpha*n_alpha  (0 for alpha=0)"
+    },
+    {
+      "id": "E13",
+      "name": "Geopotential altitude",
+      "latex": "H=\\dfrac{R_{geop}\\,h}{R_{geop}+h}",
+      "expression": "H = R_geop*h/(R_geop+h)"
+    },
+    {
+      "id": "E14",
+      "name": "ISA temperature and pressure (layer b)",
+      "latex": "T=T_b+L_b(H-H_b),\\quad p=\\begin{cases}p_b\\,(T/T_b)^{-g_0/(L_bR_{air})}&L_b\\neq0\\\\p_b\\,e^{-g_0(H-H_b)/(R_{air}T_b)}&L_b=0\\end{cases}",
+      "expression": "see atmosphere_model.layers; above 86 km: isothermal exponential",
+      "extra": "rho = p/(R_air*T);  a_s = sqrt(gamma_air*R_air*T)"
+    },
+    {
+      "id": "E15",
+      "name": "Local frame",
+      "latex": "\\hat{\\mathbf u}=\\dfrac{\\mathbf r}{|\\mathbf r|},\\quad\\hat{\\mathbf e}=\\dfrac{\\hat{\\mathbf z}\\times\\hat{\\mathbf u}}{|\\hat{\\mathbf z}\\times\\hat{\\mathbf u}|},\\quad\\hat{\\mathbf n}=\\hat{\\mathbf u}\\times\\hat{\\mathbf e}",
+      "expression": "u=r/|r|; e=normalize(cross(z,u)); n=cross(u,e)"
+    },
+    {
+      "id": "E16",
+      "name": "Launch azimuth",
+      "latex": "\\sin\\psi=\\dfrac{\\cos i_{target}}{\\cos\\varphi_{lat}}",
+      "expression": "psi = asin(cos(i_target)/cos(lat))"
+    },
+    {
+      "id": "E17",
+      "name": "Vertical rise and smooth pitch-over (programmed thrust direction)",
+      "latex": "\\hat{\\mathbf u}_{T,prog}=\\cos\\delta\\,\\hat{\\mathbf u}+\\sin\\delta\\,(\\cos\\psi\\,\\hat{\\mathbf n}+\\sin\\psi\\,\\hat{\\mathbf e}),\\quad \\delta(t)=\\begin{cases}0&t<t_v\\\\ \\delta_{max}\\left(1-e^{-(t-t_v)/\\tau_{pitch}}\\right)&t\\ge t_v\\end{cases}",
+      "expression": "u_T_prog = cos(d)*u + sin(d)*(cos(psi)*n + sin(psi)*e); d = 0 for t<t_v, d = d_max*(1-exp(-(t-t_v)/tau_pitch)) for t>=t_v",
+      "notes": "Replaces the former linear ramp with a hard stop. delta is continuous at t_v; only its slope jumps there, so t_v is declared as a restart point. Applied in the azimuth plane."
+    },
+    {
+      "id": "E18",
+      "name": "Continuous hand-over to the gravity turn (zero angle of attack)",
+      "latex": "\\hat{\\mathbf u}_T=\\mathrm{slerp}\\!\\left(\\hat{\\mathbf u}_{T,prog},\\,\\dfrac{\\mathbf v_{rel}}{|\\mathbf v_{rel}|},\\,s(t)\\right),\\quad s=3x^2-2x^3,\\; x=\\mathrm{clip}\\!\\left(\\dfrac{t-t_{blend0}}{t_{blend}},0,1\\right)",
+      "expression": "u_T = slerp(u_T_prog, v_rel/|v_rel|, s(t)); s = 3x^2-2x^3, x = clip((t-t_blend0)/t_blend, 0, 1); s=1 gives the pure gravity turn u_T = v_rel/|v_rel|",
+      "notes": "Entering the gravity turn is no longer an event: u_T is continuous and, because s'(0)=s'(1)=0, its derivative is continuous too. Singularity guard: if |v_rel| < 1e-3 m/s use the previous u_T (the programmed direction u_T_prog) instead of v_rel/|v_rel|; it does not trigger in the example (|v_rel| ~ 150 m/s at t = 16 s) but avoids NaN for slower vehicles. If u_T_prog and v_rel are almost parallel, slerp falls back to a normalised linear mix."
+    },
+    {
+      "id": "E19",
+      "name": "Initial conditions",
+      "latex": "\\mathbf r_0=R_E\\,\\hat{\\mathbf u}_0,\\quad\\mathbf v_0=\\boldsymbol\\omega_E\\times\\mathbf r_0,\\quad m_0=m_{pl}+m_{fair}+\\sum_j(m_{dry,j}+m_{prop,j})",
+      "expression": "r0 = R_E*u0; v0 = cross(omega, r0); m(0) = total liftoff mass"
+    },
+    {
+      "id": "E20",
+      "name": "Staging jump map (stage k -> k+1)",
+      "latex": "\\mathbf r^+=\\mathbf r^-,\\quad m^+=m^--m_{dry,k},\\quad \\mathbf v^+=\\mathbf v^-+\\dfrac{m_{dry,k}}{m^-}\\,\\Delta v_{sep}\\,\\hat{\\mathbf u}_T",
+      "expression": "r+ = r-; m+ = m- - m_dry_k; v+ = v- + (m_dry_k/m-)*dv_sep*u_T",
+      "notes": "From momentum conservation m- v- = m+ v+ + m_dry (v+ - dv_sep u_T). With dv_sep = 0 the velocity is continuous and only the mass jumps."
+    },
+    {
+      "id": "E21",
+      "name": "Fairing jettison jump map",
+      "latex": "m^+=m^--m_{fair},\\quad \\mathbf v^+=\\mathbf v^-,\\quad\\text{trigger: }\\tfrac12\\rho\\,|\\mathbf v_{rel}|^3<q_{heat}",
+      "expression": "m+ = m- - m_fair when 0.5*rho*Vr^3 < 1135 W/m^2 (after max-Q)",
+      "notes": "The heat-flux threshold (1135 W/m^2) is a tuning parameter and is quite low, so the fairing leaves late (~110 km in the example)."
+    },
+    {
+      "id": "E22",
+      "name": "Tsiolkovsky rocket equation (per stage)",
+      "latex": "\\Delta v_k=I_{sp,vac,k}\\,g_0\\,\\ln\\dfrac{m_{0,k}}{m_{0,k}-m_{prop,k}}",
+      "expression": "dv_k = Isp_vac*g0*ln(m0_k/mf_k)"
+    },
+    {
+      "id": "E23",
+      "name": "Delta-v budget closure",
+      "latex": "|\\mathbf v_f|-|\\mathbf v_0|=\\Delta v_{ideal}-\\Delta v_{bp}-\\Delta v_{steer}-\\Delta v_{drag}-\\Delta v_{grav}",
+      "expression": "exact identity from d|v|/dt = (T.v_hat + D.v_hat)/m + g.v_hat"
+    },
+    {
+      "id": "E24",
+      "name": "Diagnostics",
+      "latex": "h=|\\mathbf r|-R_E,\\quad n=\\dfrac{|\\mathbf T+\\mathbf D+\\mathbf N|}{m\\,g_0},\\quad \\varepsilon=\\dfrac{|\\mathbf v|^2}{2}-\\dfrac{\\mu}{|\\mathbf r|}",
+      "expression": "altitude, load factor, orbital energy"
+    },
+    {
+      "id": "E26",
+      "name": "Dropped stage (second, independent IVP)",
+      "latex": "\\dot{\\mathbf r}_s=\\mathbf v_s,\\quad \\dot{\\mathbf v}_s=\\mathbf g(\\mathbf r_s)-\\dfrac{\\tfrac12\\,\\rho(h_s)\\,C_D\\,A_{ref,drop}\\,|\\mathbf v_{s,air}|\\,\\mathbf v_{s,air}}{m_{dry,1}},\\quad \\mathbf v_{s,air}=\\mathbf v_s-\\boldsymbol\\omega_E\\times\\mathbf r_s",
+      "expression": "dr_s/dt = v_s;  dv_s/dt = g(r_s) - 0.5*rho(h_s)*C_D(1.0)*A_ref_drop*|v_s_air|*v_s_air/m_dry_1;  v_s_air = v_s - cross([0,0,omega_E], r_s)",
+      "notes": "Started at EV3 with y_sep = [r, v, m_dry_1] taken from the vehicle state before the mass jump (dv_sep = 0). Terminated when h_s = |r_s| - R_E <= 0 (impact). Uses the same g(r) (point mass + J2) and rho(h) as the main model. A_ref_drop is the reference area of the discarded stage, not the A_ref of the complete rocket. If the impact point is not needed, this block can be removed from the spec."
+    },
+    {
+      "id": "E25",
+      "name": "Termination",
+      "latex": "h(t_f)\\ge h_{exit}",
+      "expression": "stop when |r| - R_E >= h_exit"
+    }
+  ],
+  "atmosphere_model": {
+    "layers_geopotential": [
+      {
+        "H_base_m": 0.0,
+        "T_base_K": 288.15,
+        "lapse_K_per_m": -0.0065,
+        "p_base_Pa": 101325.0
+      },
+      {
+        "H_base_m": 11000.0,
+        "T_base_K": 216.65,
+        "lapse_K_per_m": 0.0,
+        "p_base_Pa": 22632.0555
+      },
+      {
+        "H_base_m": 20000.0,
+        "T_base_K": 216.65,
+        "lapse_K_per_m": 0.001,
+        "p_base_Pa": 5474.8847
+      },
+      {
+        "H_base_m": 32000.0,
+        "T_base_K": 228.65,
+        "lapse_K_per_m": 0.0028,
+        "p_base_Pa": 868.0176
+      },
+      {
+        "H_base_m": 47000.0,
+        "T_base_K": 270.65,
+        "lapse_K_per_m": 0.0,
+        "p_base_Pa": 110.9061
+      },
+      {
+        "H_base_m": 51000.0,
+        "T_base_K": 270.65,
+        "lapse_K_per_m": -0.0028,
+        "p_base_Pa": 66.9388
+      },
+      {
+        "H_base_m": 71000.0,
+        "T_base_K": 214.65,
+        "lapse_K_per_m": -0.002,
+        "p_base_Pa": 3.9564
+      }
+    ],
+    "above_86km": "Isothermal at T = 186.946 K with exponential pressure decay, scale height R_air*T/g0 = 5.47 km",
+    "drag_coefficient_table": {
+      "Mach": [
+        0.0,
+        0.6,
+        0.9,
+        1.1,
+        1.5,
+        2.0,
+        3.0,
+        5.0,
+        8.0,
+        30.0
+      ],
+      "C_D": [
+        0.28,
+        0.28,
+        0.36,
+        0.62,
+        0.55,
+        0.44,
+        0.32,
+        0.24,
+        0.2,
+        0.2
+      ],
+      "interpolation": "linear"
+    }
+  },
+  "guidance_program": {
+    "phase_1_vertical_rise": {
+      "until_s": 10.0,
+      "thrust_direction": "local up"
+    },
+    "phase_2_pitch_kick": {
+      "description": "Smooth pitch-over (E17) starting at t_v, no hard end",
+      "t_v_s": 10.0,
+      "delta_max_deg": 5.4,
+      "tau_pitch_s": 5.0,
+      "azimuth": "from launch azimuth equation E16",
+      "plane": "azimuth plane (cos psi * n + sin psi * e)",
+      "note": "delta_max was re-tuned from 5.0 deg (old linear ramp, which reached 5 deg at 16 s) to 5.4 deg so the trajectory stays close to v1.0; the old law is not equivalent and the trajectory is very sensitive to it (a few tenths of a degree change the exit altitude/FPA a lot)."
+    },
+    "phase_3_gravity_turn": {
+      "thrust_direction": "smooth blend (E18) from the programmed direction into the air-relative velocity unit vector (alpha = 0)",
+      "t_blend0_s": 16.0,
+      "t_blend_s": 3.0,
+      "blend_law": "smoothstep s(x)=3x^2-2x^3",
+      "pure_gravity_turn_from_s": 19.0,
+      "applies_to": "rest of the ascent, both stages",
+      "singularity_guard": "if |v_rel| < 1e-3 m/s: use previous u_T (programmed direction)"
+    },
+    "launch_site": {
+      "lat_deg": 28.5,
+      "lon_deg": -80.6,
+      "target_inclination_deg": 51.6,
+      "computed_azimuth_deg": 44.98
+    }
+  },
+  "events_and_staging": [
+    {
+      "id": "EV1",
+      "name": "Liftoff / stage-1 ignition",
+      "trigger": "t = 0",
+      "action": "engine k=1 on, tau(t) applied"
+    },
+    {
+      "id": "EV2",
+      "name": "Main engine cut-off (MECO)",
+      "trigger": "m = m0_1 - m_prop_1  (stage-1 propellant exhausted)",
+      "action": "thrust = 0, dm/dt = 0"
+    },
+    {
+      "id": "EV3",
+      "name": "Stage-1 separation",
+      "trigger": "2.0 s after MECO",
+      "action": "apply jump map E20: m -= m_dry_1; k = 2; start the ballistic IVP E26 for the dropped stage"
+    },
+    {
+      "id": "EV4",
+      "name": "Stage-2 ignition",
+      "trigger": "1.0 s after separation",
+      "action": "engine k=2 on"
+    },
+    {
+      "id": "EV5",
+      "name": "Karman line crossing",
+      "trigger": "h = 100 km (rising)",
+      "action": "log only"
+    },
+    {
+      "id": "EV6",
+      "name": "Fairing jettison",
+      "trigger": "0.5*rho*|v_rel|^3 < q_heat_fairing (1135 W/m^2) and h > 60 km",
+      "action": "apply jump map E21"
+    },
+    {
+      "id": "EV7",
+      "name": "Atmosphere exit (termination)",
+      "trigger": "h = 120 km (rising)",
+      "action": "stop integration; report state"
+    },
+    {
+      "id": "EV8",
+      "name": "Safety termination",
+      "trigger": "stage-2 propellant exhausted before EV7",
+      "action": "stop; report SECO state"
+    },
+    {
+      "id": "EV9",
+      "name": "Pitch-over start (integration restart)",
+      "trigger": "t = t_v = 10 s",
+      "action": "non-terminal event, direction = 0: restart the step at the slope discontinuity of delta(t)"
+    },
+    {
+      "id": "EV10",
+      "name": "Throttle breakpoint t = 44 s",
+      "trigger": "t = 44 s (breakpoint of the tau table)",
+      "action": "terminal = False, direction = 0: restart the step exactly at the kink of tau(t); improves max-Q accuracy at no cost"
+    },
+    {
+      "id": "EV11",
+      "name": "Throttle breakpoint t = 50 s",
+      "trigger": "t = 50 s (breakpoint of the tau table)",
+      "action": "terminal = False, direction = 0: restart the step exactly at the kink of tau(t); improves max-Q accuracy at no cost"
+    },
+    {
+      "id": "EV12",
+      "name": "Throttle breakpoint t = 66 s",
+      "trigger": "t = 66 s (breakpoint of the tau table)",
+      "action": "terminal = False, direction = 0: restart the step exactly at the kink of tau(t); improves max-Q accuracy at no cost"
+    },
+    {
+      "id": "EV13",
+      "name": "Throttle breakpoint t = 72 s",
+      "trigger": "t = 72 s (breakpoint of the tau table)",
+      "action": "terminal = False, direction = 0: restart the step exactly at the kink of tau(t); improves max-Q accuracy at no cost"
+    }
+  ],
+  "example_simulation": {
+    "vehicle": {
+      "payload_kg": 8000.0,
+      "fairing_kg": 1750.0,
+      "A_ref_m2": 10.52,
+      "stages": [
+        {
+          "name": "Stage 1",
+          "m_dry": 25600.0,
+          "m_prop": 395700.0,
+          "T_vac": 8200000.0,
+          "Isp_vac": 311.0,
+          "A_e": 6.0,
+          "mdot_max": 2688.641
+        },
+        {
+          "name": "Stage 2",
+          "m_dry": 4000.0,
+          "m_prop": 111500.0,
+          "T_vac": 934000.0,
+          "Isp_vac": 348.0,
+          "A_e": 8.5,
+          "mdot_max": 273.682
+        }
+      ],
+      "throttle_table": {
+        "t_s": [
+          0.0,
+          44.0,
+          50.0,
+          66.0,
+          72.0,
+          null
+        ],
+        "tau": [
+          1.0,
+          1.0,
+          0.72,
+          0.72,
+          1.0,
+          1.0
+        ],
+        "note": "last time entry means 'to end of flight'"
+      },
+      "dropped_stage": {
+        "A_ref_drop_m2": 10.52,
+        "C_D": 1.0,
+        "m": 25600.0,
+        "note": "Stage 1 is the core, with the same diameter as A_ref (pi d^2/4 = 10.52 m^2). If the real stage section is smaller (e.g. 7-8 m^2) change this value."
+      }
+    },
+    "separation": {
+      "coast_to_sep": 2.0,
+      "coast_to_ignition": 1.0,
+      "dv_sep": 0.0
+    },
+    "numerical_method": {
+      "integrator": "DOP853 (explicit Runge-Kutta 8(5,3))",
+      "rtol": 1e-10,
+      "atol": 1e-08,
+      "max_step_s": 0.5,
+      "event_handling": "terminal events stop the integration; jump map applied; integration restarts from the new state. Throttle breakpoints (44, 50, 66, 72 s) and the pitch-over start (10 s) are non-terminal events (terminal=False, direction=0) that restart the step exactly there.",
+      "logging_flags": {
+        "thrust_clipped": "log/assert if T was clipped at 0 (E8)",
+        "v_rel_guard": "log if |v_rel| < 1e-3 m/s forced the previous u_T"
+      }
+    },
+    "results": {
+      "events": [
+        {
+          "event": "Liftoff / Stage-1 ignition",
+          "t_s": 0.0,
+          "altitude_km": 0.0,
+          "speed_inertial_ms": 408.3,
+          "speed_relative_ms": 0.0,
+          "mass_kg": 546550.0,
+          "flight_path_angle_deg": 90.0
+        },
+        {
+          "event": "MECO (Stage-1 burnout)",
+          "t_s": 153.33,
+          "altitude_km": 67.85,
+          "speed_inertial_ms": 3041.9,
+          "speed_relative_ms": 2736.2,
+          "mass_kg": 150850.0,
+          "flight_path_angle_deg": 21.6
+        },
+        {
+          "event": "Stage-1 separation (mass jump)",
+          "t_s": 155.33,
+          "altitude_km": 69.86,
+          "speed_inertial_ms": 3035.6,
+          "speed_relative_ms": 2729.1,
+          "mass_kg": 125250.0,
+          "flight_path_angle_deg": 21.3
+        },
+        {
+          "event": "Stage-2 ignition",
+          "t_s": 156.33,
+          "altitude_km": 70.84,
+          "speed_inertial_ms": 3032.4,
+          "speed_relative_ms": 2725.6,
+          "mass_kg": 125250.0,
+          "flight_path_angle_deg": 21.2
+        },
+        {
+          "event": "Karman line crossed (100 km)",
+          "t_s": 189.08,
+          "altitude_km": 100.0,
+          "speed_inertial_ms": 3194.7,
+          "speed_relative_ms": 2878.8,
+          "mass_kg": 116289.0,
+          "flight_path_angle_deg": 16.1
+        },
+        {
+          "event": "Fairing jettison (heat flux < 1135 W/m2)",
+          "t_s": 203.24,
+          "altitude_km": 110.69,
+          "speed_inertial_ms": 3278.4,
+          "speed_relative_ms": 2959.5,
+          "mass_kg": 112414.0,
+          "flight_path_angle_deg": 13.9
+        },
+        {
+          "event": "mass after fairing jettison",
+          "t_s": 203.24,
+          "altitude_km": 110.69,
+          "speed_inertial_ms": 3278.4,
+          "speed_relative_ms": 2959.5,
+          "mass_kg": 110664.0,
+          "flight_path_angle_deg": 13.9
+        },
+        {
+          "event": "Atmosphere exit (120 km) – end of model",
+          "t_s": 217.09,
+          "altitude_km": 120.0,
+          "speed_inertial_ms": 3370.3,
+          "speed_relative_ms": 3048.9,
+          "mass_kg": 106873.0,
+          "flight_path_angle_deg": 11.9
+        }
+      ],
+      "max_q": {
+        "t": 49.0,
+        "q": 28976.99478109881,
+        "h": 6433.84156463854,
+        "M": 0.9646936049997576,
+        "v": 303.5501234108986
+      },
+      "delta_v_budget_ms": {
+        "dv_ideal": 4414.2,
+        "bp_loss": 62.5,
+        "steer_loss": 633.7,
+        "drag_loss": 19.3,
+        "g_loss": 736.7,
+        "v_initial_inertial": 408.3,
+        "v_final_inertial": 3370.3,
+        "closure_residual": 0.0,
+        "stage1_ideal_full": 3926.2,
+        "stage2_ideal_to_exit": 488.0,
+        "analytic_sum_check": 4414.2
+      },
+      "dropped_stage": {
+        "apogee_km": 129.4,
+        "impact_time_after_sep_s": 332.4,
+        "impact_downrange_km": 837.0
+      },
+      "launch_azimuth_deg": 44.98,
+      "initial_mass_kg": 546550.0,
+      "initial_TW_sea_level": 1.416,
+      "stage_burn_time_s": [
+        147.2,
+        407.4
+      ],
+      "max_accel_g": 5.55,
+      "thrust_clip_count": 0,
+      "model_version": "1.1"
+    }
+  }
+}
