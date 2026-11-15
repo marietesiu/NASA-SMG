@@ -34,6 +34,7 @@
               <div class="button-row">
                 <button id="startMissionBtn" class="primary-button">Start Mission</button>
                 <button id="showBuilderBtn" class="secondary-button">Rocket Builder</button>
+                <button id="openInterceptBtn" class="secondary-button">Orbital Intercept</button>
                 <button id="showSettingsBtn" class="secondary-button ghost-button">Settings</button>
               </div>
             </div>
@@ -110,6 +111,93 @@
           </div>
         </section>
 
+        <section id="interceptScreen" class="screen">
+          <div class="panel intercept-panel">
+            <div class="panel-header intercept-header">
+              <div>
+                <p class="eyebrow">Orbital Mechanics / Live Exercise</p>
+                <h2>Intercept the moving world</h2>
+              </div>
+              <button id="interceptBackBtn" class="text-button">Mission desk</button>
+            </div>
+
+            <div class="intercept-layout">
+              <div class="intercept-main">
+                <div class="intercept-canvas-wrap">
+                  <canvas id="interceptCanvas" aria-label="Animated 2D rocket and planet interception simulation"></canvas>
+                  <div class="canvas-stamp"><span class="status-led"></span> LIVE TRAJECTORY</div>
+                  <div class="canvas-axis-label axis-x">DOWNRANGE / m</div>
+                  <div class="canvas-axis-label axis-y">ALTITUDE / m</div>
+                </div>
+                <div class="trajectory-legend" aria-label="Trajectory legend">
+                  <span><i class="legend-rocket"></i>Rocket path</span>
+                  <span><i class="legend-planet"></i>Planet orbit</span>
+                  <span><i class="legend-actual"></i>Flown path</span>
+                </div>
+                <div class="flight-readout" aria-live="polite">
+                  <div><span>MISSION TIME</span><strong id="interceptTime">T+ 0.00 s</strong></div>
+                  <div><span>ROCKET POSITION</span><strong id="rocketPositionReadout">0, 0 m</strong></div>
+                  <div><span>PLANET POSITION</span><strong id="planetPositionReadout">399, 220 m</strong></div>
+                  <div><span>FLIGHT STATUS</span><strong id="flightStatusReadout">Awaiting launch</strong></div>
+                </div>
+              </div>
+
+              <aside class="intercept-sidebar">
+                <section class="intercept-control-section">
+                  <div class="control-heading"><span>01</span><h3>Launch vector</h3></div>
+                  <label class="angle-readout" for="launchAngleSlider"><span>FLIGHT-PATH ANGLE</span><strong><output id="launchAngleValue" for="launchAngleSlider">45.0</output><small>°</small></strong></label>
+                  <input id="launchAngleSlider" type="range" min="5" max="85" step="0.1" value="45" />
+                  <div class="range-ends"><span>5°</span><span>85°</span></div>
+                  <p class="control-hint">Adjust the ascent angle, then commit to the burn. The target moves throughout the flight.</p>
+                </section>
+
+                <section class="intercept-control-section">
+                  <div class="control-heading"><span>02</span><h3>Flight controls</h3></div>
+                  <div class="intercept-actions">
+                    <button id="interceptLaunchBtn" class="primary-button">Launch rocket</button>
+                    <button id="interceptPauseBtn" class="secondary-button" disabled>Pause</button>
+                    <button id="interceptResetBtn" class="secondary-button">Reset</button>
+                  </div>
+                  <label class="speed-control" for="simulationSpeedSelect"><span>Simulation speed</span>
+                    <select id="simulationSpeedSelect">
+                      <option value="0.5">0.5×</option>
+                      <option value="1" selected>1×</option>
+                      <option value="2">2×</option>
+                      <option value="4">4×</option>
+                    </select>
+                  </label>
+                </section>
+
+                <details class="scenario-tuning">
+                  <summary>Scenario parameters</summary>
+                  <div class="scenario-fields">
+                    <label>Rocket speed<input id="rocketSpeedInput" type="number" min="1" max="1000" step="1" value="100" /> <small>m/s</small></label>
+                    <label>Gravity<input id="gravityInput" type="number" min="0.1" max="100" step="0.01" value="9.81" /> <small>m/s²</small></label>
+                    <label>Planet start X<input id="planetXInput" type="number" min="-1000" max="3000" step="1" value="399.2" /> <small>m</small></label>
+                    <label>Planet start Y<input id="planetYInput" type="number" min="0" max="2000" step="1" value="240" /> <small>m</small></label>
+                    <label>Planet velocity X<input id="planetVxInput" type="number" min="-100" max="100" step="0.1" value="4" /> <small>m/s</small></label>
+                    <label>Planet velocity Y<input id="planetVyInput" type="number" min="-100" max="100" step="0.1" value="0" /> <small>m/s</small></label>
+                    <label>Planet acceleration<input id="planetAccelerationInput" type="number" min="-20" max="20" step="0.01" value="1.55" /> <small>m/s²</small></label>
+                  </div>
+                  <p class="scenario-hint">Changing a parameter resets the flight. SI units; launch position remains fixed at (0, 0).</p>
+                </details>
+
+                <section id="interceptFeedback" class="intercept-feedback" aria-live="polite">
+                  <div class="control-heading"><span>03</span><h3>Flight report</h3></div>
+                  <p id="interceptFeedbackText">Choose an angle and launch to test a true time-dependent rendezvous.</p>
+                  <dl id="interceptResultMetrics" hidden>
+                    <div><dt>Selected angle</dt><dd id="resultAngle">—</dd></div>
+                    <div><dt>Closest separation</dt><dd id="resultDistance">—</dd></div>
+                    <div><dt>Closest approach</dt><dd id="resultClosestTime">—</dd></div>
+                    <div id="interceptCoordinatesRow" hidden><dt>Intercept point</dt><dd id="resultInterceptPoint">—</dd></div>
+                    <div><dt>Calculated solution</dt><dd id="resultOptimalAngle">—</dd></div>
+                  </dl>
+                </section>
+              </aside>
+            </div>
+          </div>
+        </section>
+
         <section id="settingsScreen" class="screen">
           <div class="panel settings-panel">
             <div class="panel-header">
@@ -160,5 +248,6 @@
     </div>
 
     <script src="./js/app.js"></script>
+    <script type="module" src="./js/orbital-interception.mjs"></script>
   </body>
 </html>

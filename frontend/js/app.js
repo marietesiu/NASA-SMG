@@ -16,7 +16,10 @@ function showScreen(screenId) {
     el.classList.toggle("active", el.id === screenId);
   });
   state.currentScreen = screenId;
+  document.dispatchEvent(new CustomEvent("app:screen-changed", { detail: { screenId } }));
 }
+
+window.showAppScreen = showScreen;
 
 function formatMillions(value) {
   return `${Number(value || 0).toFixed(1)} M$`;
@@ -309,6 +312,7 @@ function bindEvents() {
   document.getElementById("startMissionBtn").addEventListener("click", () => showScreen("builderScreen"));
   document.getElementById("showBuilderBtn").addEventListener("click", () => showScreen("builderScreen"));
   document.getElementById("showSettingsBtn").addEventListener("click", () => showScreen("settingsScreen"));
+  document.getElementById("openInterceptBtn").addEventListener("click", () => showScreen("interceptScreen"));
   document.getElementById("backToMenuBtn").addEventListener("click", () => showScreen("menuScreen"));
   document.getElementById("settingsBackBtn").addEventListener("click", () => showScreen("builderScreen"));
   document.getElementById("launchBackBtn").addEventListener("click", () => showScreen("builderScreen"));
