@@ -131,7 +131,6 @@ var _shot: int = 1
 var _finished: bool = false
 var _challenge_active: bool = false
 var _challenge_waiting_for_answer: bool = false
-var _challenge_in_flight: bool = false
 var _challenge_hit: bool = false
 var _challenge_angle_rad: float = 0.0
 var _challenge_a: float = 0.0
@@ -149,7 +148,7 @@ var _http_busy: bool = false
 var _queued_http_action: String = ""
 var _queued_http_payload: Dictionary = {}
 var _success_elapsed: float = 0.0
-var _success_hold_seconds: float = 1.5
+var _success_hold_seconds: float = 4.0
 var _js_callback: JavaScriptObject
 
 
@@ -214,9 +213,6 @@ func _setup_bodies() -> void:
 	_destination_body.radius = destination_distance * sin(deg_to_rad(_destination.angular_radius_deg))
 	_destination_body.build()
 	_destination_body.set_sun_direction(sun_from)
-	if _challenge_active:
-		_destination_body.position = _challenge_destination_position()
-		_destination_body.set_sun_direction(sun_from)
 
 
 func _setup_rocket(config: Dictionary) -> void:
@@ -375,50 +371,43 @@ func _on_http_request_completed(result: int, response_code: int, _headers: Packe
 		_send_http(next_action, next_payload)
 
 
+## Checks the submitted angle against the destination curve. Nothing is flown: a miss is
+## reported (the scene stays paused and the player may try again), a hit ends the transit.
 func _receive_challenge_angle(angle_deg: float) -> void:
 	if not _challenge_active or not _challenge_waiting_for_answer or not is_finite(angle_deg):
 		return
-	if angle_deg <= -89.0 or angle_deg >= 89.0:
-		return
-	_challenge_angle_rad = deg_to_rad(angle_deg)
-	if _http_poll_timer != null:
-		_http_poll_timer.stop()
 	_challenge_waiting_for_answer = false
-	_challenge_in_flight = true
-	_time = 0.0
-	_begin_shot(1)
-
-
-func _process_challenge(delta: float) -> void:
-	if _challenge_waiting_for_answer:
-		return
-	if _challenge_hit:
-		_success_elapsed += delta
-		if _success_elapsed >= _success_hold_seconds:
-			_finished = true
-			get_tree().change_scene_to_file(_destination.next_scene)
-		return
-	if not _challenge_in_flight:
-		return
-	_time += delta
-	_update_scene(_time)
-	if _shot == 1 and _time >= first_shot_seconds:
-		_begin_shot(2)
-	if _time >= first_shot_seconds + second_shot_seconds:
-		_challenge_in_flight = false
+	var feedback: String
+	if angle_deg <= -89.0 or angle_deg >= 89.0:
+		feedback = "Angle must be between -89 and 89 degrees. Try again."
+		_challenge_hit = false
+	else:
+		_challenge_angle_rad = deg_to_rad(angle_deg)
 		var miss_km: float = absf(tan(_challenge_angle_rad) * _challenge_target_x_km - _challenge_target_y_km)
 		_challenge_hit = miss_km <= _challenge_tolerance_km
-		var feedback: String
 		if _challenge_hit:
-			feedback = "Intercept achieved. The submitted trajectory reaches %s within %.1f km." % [
-				_destination.name, miss_km,
-			]
-			_success_elapsed = 0.0
+			feedback = "Correct angle. The trajectory reaches %s within %.1f km." % [_destination.name, miss_km]
 		else:
-			feedback = "Missed by %.1f km. Adjust theta and submit another trajectory." % miss_km
-		_report_challenge_result(_challenge_hit, feedback)
-		if not _challenge_hit:
-			_challenge_waiting_for_answer = true
+			feedback = "Wrong angle: it misses by %.1f km. Try again." % miss_km
+	_report_challenge_result(_challenge_hit, feedback)
+	if _challenge_hit:
+		_success_elapsed = 0.0
+		_update_scene(first_shot_seconds)
+		_begin_shot(2) # the second part of the scene, shown for the 4 s before the change
+	else:
+		_challenge_waiting_for_answer = true
+		if _http_poll_timer != null:
+			_http_poll_timer.start()
+
+
+## The scene stays paused on its first frame. Only a correct angle moves on.
+func _process_challenge(delta: float) -> void:
+	if not _challenge_hit:
+		return
+	_success_elapsed += delta
+	if _success_elapsed >= _success_hold_seconds:
+		_finished = true
+		get_tree().change_scene_to_file(_destination.next_scene)
 
 
 func _report_challenge_result(hit: bool, feedback: String) -> void:
@@ -467,12 +456,6 @@ func _build_arrow() -> void:
 ## arrow) along its orbit.
 func _update_scene(t: float) -> void:
 	_rocket.set_pose(_path_position(t), _path_direction(t), Vector3.UP)
-	if _challenge_active:
-		_destination_body.position = _challenge_destination_position()
-		if _arrow != null:
-			_update_arrow(_destination_body.position)
-		return
-
 	var total: float = first_shot_seconds + second_shot_seconds
 	var bearing: float = deg_to_rad(destination_drift) * clampf(t / total, 0.0, 1.0)
 	var at := Vector3(cos(bearing), 0.0, sin(bearing)) * destination_distance
@@ -503,8 +486,6 @@ func _update_arrow(destination_at: Vector3) -> void:
 
 ## Where the destination will be when the rocket arrives, far along its orbit.
 func _intercept_point() -> Vector3:
-	if _challenge_active:
-		return _challenge_destination_position()
 	var bearing: float = deg_to_rad(intercept_bearing)
 	return Vector3(cos(bearing), 0.0, sin(bearing)) * destination_distance
 
@@ -519,8 +500,6 @@ func _heading(t: float) -> float:
 
 
 func _path_direction(t: float) -> Vector3:
-	if _challenge_active and _challenge_in_flight:
-		return Vector3(cos(_challenge_angle_rad), 0.0, sin(_challenge_angle_rad))
 	var heading: float = _heading(t)
 	return Vector3(cos(heading), 0.0, sin(heading))
 
@@ -529,16 +508,6 @@ func _path_direction(t: float) -> Vector3:
 ## (so the cut is at the origin). The rocket moves at a constant speed while its heading
 ## turns at a constant rate, which is a circular arc; this is that arc in closed form.
 func _path_position(t: float) -> Vector3:
-	if _challenge_active and _challenge_in_flight:
-		var total: float = first_shot_seconds + second_shot_seconds
-		var progress: float = clampf(t / total, 0.0, 1.0)
-		var x_km: float = _challenge_target_x_km * progress
-		var visual_scale: float = destination_distance / _challenge_target_x_km
-		return Vector3(
-			destination_distance * progress,
-			0.0,
-			tan(_challenge_angle_rad) * x_km * visual_scale
-		)
 	var total: float = first_shot_seconds + second_shot_seconds
 	var turn_rate: float = deg_to_rad(-path_bend) / total
 	var heading_cut: float = _heading(first_shot_seconds)

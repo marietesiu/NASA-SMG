@@ -65,6 +65,44 @@ def process_running_for_project(project_root: str) -> bool:
     return False
 
 
+def stop_project_processes(project_root: str) -> None:
+    try:
+        result = subprocess.run(
+            ["ps", "-eo", "pid,args"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        return
+
+    pids = []
+    for line in result.stdout.splitlines():
+        if "--path" not in line or project_root not in line:
+            continue
+        parts = line.strip().split(None, 1)
+        if not parts:
+            continue
+        try:
+            pids.append(int(parts[0]))
+        except ValueError:
+            continue
+
+    for pid in sorted(set(pids)):
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            continue
+
+    for pid in sorted(set(pids)):
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            continue
+        except PermissionError:
+            continue
+
+
 def validate_payload(payload: dict, catalog: dict):
     if not isinstance(payload, dict):
         raise ValueError("Launch payload must be a JSON object.")
@@ -217,6 +255,9 @@ class LauncherHandler(SimpleHTTPRequestHandler):
             if parsed.path == "/api/transit/result":
                 self._record_transit_result(payload)
                 return
+            if parsed.path == "/api/reset":
+                self._reset_runtime()
+                return
             if parsed.path != "/api/launch":
                 self.send_error(404, "Not found")
                 return
@@ -249,6 +290,15 @@ class LauncherHandler(SimpleHTTPRequestHandler):
             self.send_json({"ok": True, "config_path": "mission_config.json"})
         except Exception as exc:  # pragma: no cover - HTTP error path
             self.send_json({"ok": False, "error": str(exc)}, status=400)
+
+    def _reset_runtime(self):
+        stop_project_processes(PROJECT_ROOT)
+        global TRANSIT_SESSION
+        with TRANSIT_LOCK:
+            TRANSIT_SESSION = None
+        if os.path.exists(MISSION_CONFIG_PATH):
+            os.remove(MISSION_CONFIG_PATH)
+        self.send_json({"ok": True, "reset": True})
 
     def _start_transit_session(self, payload):
         global TRANSIT_SESSION
@@ -295,7 +345,7 @@ class LauncherHandler(SimpleHTTPRequestHandler):
                 raise ValueError("This transit session is not accepting an answer yet.")
             TRANSIT_SESSION["answer"] = float(angle)
             TRANSIT_SESSION["status"] = "answer_received"
-            TRANSIT_SESSION["feedback"] = "Angle received. Simulating the relative trajectory..."
+            TRANSIT_SESSION["feedback"] = "Checking the angle..."
         self.send_json({"ok": True})
 
     def _record_transit_result(self, payload):
@@ -306,7 +356,7 @@ class LauncherHandler(SimpleHTTPRequestHandler):
         with TRANSIT_LOCK:
             if not TRANSIT_SESSION or TRANSIT_SESSION.get("session_id") != session_id:
                 raise ValueError("Transit session was not found or has expired.")
-            TRANSIT_SESSION["status"] = "hit" if hit else "missed"
+            TRANSIT_SESSION["status"] = "ready"
             TRANSIT_SESSION["feedback"] = str(payload.get("feedback", ""))[:400]
             TRANSIT_SESSION["answer"] = None
         self.send_json({"ok": True})

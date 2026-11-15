@@ -32,6 +32,15 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 24px;
 }
 
+.topbar-actions {
+  display: flex; align-items: center; gap: 12px;
+}
+
+.reset-button {
+  padding: 0.7rem 1rem; border-radius: 999px; border: 1px solid rgba(255, 108, 123, 0.45);
+  background: rgba(255, 108, 123, 0.12); color: #ffd9dd; font-weight: 700;
+}
+
 .brand-wrap {
   display: flex; align-items: center; gap: 16px; min-width: 0;
 }

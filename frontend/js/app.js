@@ -6,14 +6,21 @@ const DEFAULT_STATE = {
   audioVolume: 0.8,
   budgetLimit: 54.8,
   selectedComponents: {},
-  currentScreen: "menuScreen"
+  currentScreen: "menuScreen",
+  screenHistory: []
 };
 
 const state = { ...DEFAULT_STATE };
 let transitFrameSource = null;
 let transitSession = null;
 
-function showScreen(screenId) {
+function showScreen(screenId, options = {}) {
+  const { pushHistory = true, force = false } = options;
+
+  if (screenId && state.currentScreen !== screenId && pushHistory && !force) {
+    state.screenHistory.push(state.currentScreen);
+  }
+
   document.querySelectorAll(".screen").forEach((el) => {
     el.classList.toggle("active", el.id === screenId);
   });
@@ -21,7 +28,31 @@ function showScreen(screenId) {
   document.dispatchEvent(new CustomEvent("app:screen-changed", { detail: { screenId } }));
 }
 
+function goBack() {
+  const previousScreen = state.screenHistory.pop() || "menuScreen";
+  showScreen(previousScreen, { pushHistory: false, force: true });
+}
+
+async function resetEverything() {
+  try {
+    await fetch("/api/reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    });
+  } catch (_error) {
+    // The launcher may be unavailable; the page reset still proceeds.
+  }
+
+  state.screenHistory = [];
+  state.currentScreen = "menuScreen";
+  showScreen("menuScreen", { pushHistory: false, force: true });
+  window.location.reload();
+}
+
 window.showAppScreen = showScreen;
+window.goBack = goBack;
+window.resetEverything = resetEverything;
 
 function formatMillions(value) {
   return `${Number(value || 0).toFixed(1)} M$`;
@@ -276,11 +307,11 @@ function renderTransitSession(session) {
   document.getElementById("transitTargetX").textContent = `${Number(session.target_x_km).toLocaleString(undefined, { maximumFractionDigits: 2 })} km`;
   const form = document.getElementById("transitAnswerForm");
   const feedback = document.getElementById("transitFeedback");
-  const accepting = session.status === "ready" || session.status === "missed";
+  const accepting = ["ready", "missed", "hit", "answer_received"].includes(String(session.status || "").toLowerCase());
   form.hidden = !accepting;
   document.getElementById("transitSubmitBtn").disabled = !accepting;
   feedback.textContent = session.feedback || (session.status === "answer_received"
-    ? "Angle received. The rocket is flying the relative trajectory…"
+    ? "Checking the angle…"
     : "Calculate the angle at the displayed destination distance." );
   showScreen("transitScreen");
 }
@@ -319,7 +350,7 @@ async function submitTransitAnswer(event) {
       const result = await response.json();
       if (!response.ok || result.ok === false) throw new Error(result.error || "The angle could not be sent.");
     }
-    renderTransitSession({ ...transitSession, status: "answer_received", feedback: "Angle received. The rocket is flying the relative trajectory…" });
+    renderTransitSession({ ...transitSession, status: "answer_received", feedback: "Checking the angle…" });
   } catch (error) {
     document.getElementById("transitFeedback").textContent = `Submission error: ${error.message}`;
   }
@@ -332,7 +363,7 @@ function handleTransitBridgeMessage(event) {
     renderTransitSession({ ...event.data.payload, status: "ready", feedback: "Calculate the angle at the displayed destination distance." });
   } else if (event.data.type === "transit-result" && event.data.payload && transitSession
       && event.data.payload.session_id === transitSession.session_id) {
-    renderTransitSession({ ...transitSession, status: event.data.payload.hit ? "hit" : "missed", feedback: event.data.payload.feedback });
+    renderTransitSession({ ...transitSession, status: "ready", feedback: event.data.payload.feedback });
   }
 }
 
@@ -392,12 +423,13 @@ function bindEvents() {
   document.getElementById("showBuilderBtn").addEventListener("click", () => showScreen("builderScreen"));
   document.getElementById("showSettingsBtn").addEventListener("click", () => showScreen("settingsScreen"));
   document.getElementById("openInterceptBtn").addEventListener("click", () => showScreen("interceptScreen"));
-  document.getElementById("backToMenuBtn").addEventListener("click", () => showScreen("menuScreen"));
-  document.getElementById("settingsBackBtn").addEventListener("click", () => showScreen("builderScreen"));
-  document.getElementById("launchBackBtn").addEventListener("click", () => showScreen("builderScreen"));
+  document.getElementById("backToMenuBtn").addEventListener("click", () => goBack());
+  document.getElementById("settingsBackBtn").addEventListener("click", () => goBack());
+  document.getElementById("launchBackBtn").addEventListener("click", () => goBack());
   document.getElementById("launchAgainBtn").addEventListener("click", () => launchMission());
   document.getElementById("settingsFromBuilderBtn").addEventListener("click", () => showScreen("settingsScreen"));
-  document.getElementById("transitBackBtn").addEventListener("click", () => showScreen("builderScreen"));
+  document.getElementById("transitBackBtn").addEventListener("click", () => goBack());
+  document.getElementById("globalResetBtn").addEventListener("click", resetEverything);
   document.getElementById("transitAnswerForm").addEventListener("submit", submitTransitAnswer);
   window.addEventListener("message", handleTransitBridgeMessage);
 

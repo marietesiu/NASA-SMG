@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,9 +16,12 @@
             <h1>Planetary Landing Simulator</h1>
           </div>
         </div>
-        <div class="status-pill">
-          <span class="status-led"></span>
-          <span id="runtimeStatus">Standby</span>
+        <div class="topbar-actions">
+          <button id="globalResetBtn" class="reset-button" type="button">Reset</button>
+          <div class="status-pill">
+            <span class="status-led"></span>
+            <span id="runtimeStatus">Standby</span>
+          </div>
         </div>
       </header>
 
@@ -103,7 +106,7 @@
                 </div>
 
                 <div class="summary-actions">
-                  <button id="launchSimBtn" class="primary-button">Iniciar Simulación</button>
+                  <button id="launchSimBtn" class="primary-button">Launch Simulation</button>
                   <button id="settingsFromBuilderBtn" class="secondary-button">Settings</button>
                 </div>
               </aside>
@@ -118,7 +121,7 @@
                 <p class="eyebrow">Orbital Mechanics / Live Exercise</p>
                 <h2>Intercept the moving world</h2>
               </div>
-              <button id="interceptBackBtn" class="text-button">Back to Main Menu</button>
+              <button id="interceptBackBtn" class="text-button">Back to menu</button>
             </div>
 
             <div class="intercept-layout">
@@ -238,7 +241,7 @@
               <h2>Mission launched in Godot</h2>
               <p id="launchMessage">The mission was sent to the local launcher.</p>
               <div class="button-row">
-                <button id="launchBackBtn" class="secondary-button">Edit mission</button>
+                <button id="launchBackBtn" class="secondary-button">Back</button>
                 <button id="launchAgainBtn" class="primary-button">Launch again</button>
               </div>
             </div>
@@ -278,7 +281,7 @@
               <small id="transitAngleHint" class="control-hint">Use the displayed coefficients and distance; angles may be entered to four decimal places.</small>
             </form>
             <p id="transitFeedback" class="transit-feedback" role="status" aria-live="polite">Waiting for Godot to provide the transfer data…</p>
-            <button id="transitBackBtn" class="text-button" type="button">Edit mission</button>
+            <button id="transitBackBtn" class="text-button" type="button">Back</button>
           </div>
         </section>
       </main>
