@@ -199,13 +199,12 @@ func _process_descent() -> void:
 		_banner.text = _world.success if soft else _world.failure
 		if not soft:
 			# The legs give way and the lander goes over.
-			create_tween().tween_property(_rocket, "rotation:z", -PI / 2.0, 1.6) \
+			create_tween().tween_property(_rocket, "rotation:z", -deg_to_rad(64.0), 1.4) \
 					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-			create_tween().tween_property(_rocket, "position:y", PlanetSurface.PAD_HEIGHT + 2.5, 1.6)
+			create_tween().tween_property(_rocket, "position:y", PlanetSurface.PAD_HEIGHT + 1.2, 1.4)
 		_banner.show()
 		_caption.text = "Contacto a %.1f m/s (las patas aguantan %.1f m/s).%s" % [
-			_touchdown_speed, LEG_LIMIT,
-			"" if soft else " El motor no tenía empuje suficiente para frenar esta masa.",
+			_touchdown_speed, LEG_LIMIT, "" if soft else " Faltó empuje para esta masa.",
 		]
 		_set_phase(Phase.LANDED)
 
