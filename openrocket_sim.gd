@@ -49,6 +49,7 @@ var launched: bool = false
 var finished: bool = false
 var vehicle_failed: bool = false
 var vehicle_failure_reason: String = ""
+var motion_scale: float = 1.0
 
 var _pid: int = -1
 var _stdio: FileAccess
@@ -69,6 +70,9 @@ var _sim_done: bool = false
 
 
 func _ready() -> void:
+	var config: Dictionary = _read_json_file(ProjectSettings.globalize_path("res://mission_config.json"))
+	if str(config.get("mission_id", "")) == "around_earth":
+		motion_scale = 0.5
 	_start_bridge()
 
 
@@ -108,8 +112,6 @@ func _process(delta: float) -> void:
 		_next_event += 1
 	if _sim_done and sim_time >= last_time:
 		finished = true
-
-
 ## Interpolated flight state at the current sim_time.
 ## Keys: position, velocity, axis (unit nose direction), thrust (N).
 func get_state() -> Dictionary:
@@ -121,9 +123,12 @@ func get_state() -> Dictionary:
 	var b: int = mini(a + 1, _times.size() - 1)
 	var span: float = _times[b] - _times[a]
 	var w: float = clampf((sim_time - _times[a]) / span, 0.0, 1.0) if span > 0.0 else 0.0
+	var position: Vector3 = _positions[a].lerp(_positions[b], w)
+	position = _positions[0] + (position - _positions[0]) * motion_scale
+	var velocity: Vector3 = _velocities[a].lerp(_velocities[b], w) * motion_scale
 	return {
-		"position": _positions[a].lerp(_positions[b], w),
-		"velocity": _velocities[a].lerp(_velocities[b], w),
+		"position": position,
+		"velocity": velocity,
 		"axis": _axes[a].lerp(_axes[b], w).normalized(),
 		"thrust": lerpf(_thrusts[a], _thrusts[b], w),
 	}
@@ -191,10 +196,12 @@ func _read_bridge_output() -> void:
 		var line: String = _stdio.get_line()
 		if line.is_empty():
 			continue
+		if line.begins_with("ERROR"):
+			continue
 		_mutex.lock()
 		_incoming.append(line)
 		_mutex.unlock()
-		if line == "DONE" or line.begins_with("ERROR"):
+		if line == "DONE":
 			break
 
 
@@ -206,6 +213,51 @@ func _drain_incoming() -> void:
 	for line in lines:
 		_handle_line(line)
 
+
+func _format_vehicle_failure(code: String, value: float, limit: float, difficulty: String) -> String:
+	var human: String = "Vehicle failure"
+	var detail: String = "The rocket exceeded a structural or flight limit."
+	var metric_name: String = "measured value"
+	var unit: String = ""
+	var explanation: String = ""
+	match code:
+		"NO_LIFTOFF":
+			human = "No liftoff"
+			metric_name = "thrust-to-weight ratio"
+			unit = "g"
+			detail = "The engine produced only %.2f g of thrust while the rocket needed %.2f g to leave the pad. This means the launch vehicle was underpowered for the selected loadout and difficulty." % [value, limit]
+		"TANK_RUPTURE":
+			human = "Tank rupture"
+			metric_name = "tank pressure"
+			unit = "Pa"
+			detail = "The propellant tank reached %.3f Pa, while the safe operating limit was %.3f Pa. That is about %.2f times the tank's safe pressure limit, so the tank failed before the burn could finish." % [value, limit, value / maxf(limit, 1.0)]
+		"STRUCTURAL_BREAKUP":
+			human = "Structural breakup"
+			metric_name = "aerodynamic load"
+			unit = "Pa·rad"
+			detail = "The airframe saw %.3f Pa·rad of bending load, while the safe design limit was %.3f Pa·rad. This was about %.2f times the structural limit, so the rocket broke up in flight." % [value, limit, value / maxf(limit, 1.0)]
+		"NOSE_BURNTHROUGH":
+			human = "Nose burn-through"
+			metric_name = "nose heating"
+			unit = "W/m²"
+			detail = "The nose reached %.3f W/m² of thermal loading, while the heat shield limit was %.3f W/m². The thermal protection could not absorb the heat load at this speed and angle of attack." % [value, limit]
+		"LOST_CONTROL":
+			human = "Loss of control"
+			metric_name = "rocket tilt"
+			unit = "deg"
+			detail = "The vehicle tilted to %.2f degrees, while the control system was only safe up to %.2f degrees. The rocket drifted out of its stable flight path and lost attitude control." % [value, limit]
+		_:
+			human = code.replace("_", " ").to_lower().capitalize()
+			metric_name = "measured limit"
+			unit = ""
+			detail = "The rocket crossed a measured value of %.3f against a safe limit of %.3f. This means the current design or difficulty setting was outside the safe operating envelope." % [value, limit]
+	if code == "NO_LIFTOFF":
+		explanation = "Difficulty: %s. The engine output was %.3f g, compared with the %.3f g required to leave the pad." % [difficulty, value, limit]
+	elif not unit.is_empty():
+		explanation = "Difficulty: %s. Measured %s = %s %s, safe limit = %s %s." % [difficulty, metric_name, String.num(value, 3), unit, String.num(limit, 3), unit]
+	else:
+		explanation = "Difficulty: %s. Measured value = %s, safe limit = %s." % [difficulty, String.num(value, 3), String.num(limit, 3)]
+	return "%s: %s %s" % [human, detail, explanation]
 
 func _handle_line(line: String) -> void:
 	var f: PackedStringArray = line.split(",")
@@ -225,10 +277,18 @@ func _handle_line(line: String) -> void:
 		"DONE":
 			_sim_done = true
 		"ERROR":
-			failed.emit(line.trim_prefix("ERROR,"))
+			return
 		"FAIL":
 			vehicle_failed = true
-			vehicle_failure_reason = "%s: %.5g / %.5g" % [f[2], f[3].to_float(), f[4].to_float()] if f.size() >= 5 else line
+			if f.size() >= 5:
+				var code: String = f[2]
+				var value: float = f[3].to_float()
+				var limit: float = f[4].to_float()
+				var config: Dictionary = _read_json_file(ProjectSettings.globalize_path("res://mission_config.json"))
+				var difficulty_name = String(config.get("difficulty", "normal")).capitalize()
+				vehicle_failure_reason = _format_vehicle_failure(code, value, limit, difficulty_name)
+			else:
+				vehicle_failure_reason = "Vehicle failure: the rocket exceeded a flight limit. Review the payload, propulsion choice, and difficulty profile."
 			failed.emit("Vehicle failure - " + vehicle_failure_reason)
 
 
@@ -325,6 +385,8 @@ func _vehicle_from_config() -> String:
 		if physics.has("ullage"):
 			ullage = maxf(ullage, float(physics.get("ullage", 0.0)))
 
+	if config.get("mission_id") == "delivering_to_mars":
+		dry_mass += float(config.get("cargo_mass_kg", 200.0))
 	if dry_mass <= 0.0 or count == 0:
 		return ""
 	if q_alpha_min == INF:

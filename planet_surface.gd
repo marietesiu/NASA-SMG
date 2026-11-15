@@ -26,6 +26,15 @@ enum Body { MOON, MARS }
 const PAD_HEIGHT := 0.25
 const PAD_RADIUS := 13.0
 
+## Ground colour textures: tileable, smoothly upsampled crops of the 2k planet maps with
+## fine grain added, made by tools/make_surface_textures.sh (the raw maps are far too
+## coarse to use directly). Without them the ground falls back to procedural noise.
+const MOON_GROUND_TEXTURE := "res://textures/moon_surface.png"
+const MARS_GROUND_TEXTURE := "res://textures/mars_surface.png"
+## Metres covered by one repeat of those textures (2048 px: about 6 cm per texel). The grain
+## layer below adds the detail that is finer than that.
+const GROUND_TEXTURE_PATCH := 120.0
+
 var _relief := FastNoiseLite.new()
 var _mesas := FastNoiseLite.new()
 var _tint := FastNoiseLite.new()
@@ -202,12 +211,19 @@ func _ramp(colors: Array[Color]) -> Gradient:
 
 
 ## Two layers of colour and relief, mapped on the world so they never stretch on slopes:
-## broad patches every `patch` metres and grain every `grain` metres.
-func _rough_material(colors: Array[Color], patch: float, grain: float, bump: float) -> StandardMaterial3D:
+## broad patches every `patch` metres and grain every `grain` metres. The broad colour is
+## `albedo` when given, otherwise procedural noise coloured with `colors`.
+func _rough_material(colors: Array[Color], patch: float, grain: float, bump: float,
+		albedo: Texture2D = null) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.roughness = 1.0
 	mat.vertex_color_use_as_albedo = true
-	mat.albedo_texture = _noise_texture(10, 0.012, 5, _ramp(colors))
+	if albedo != null:
+		mat.albedo_texture = albedo
+		# Ground is seen at a grazing angle: without anisotropic filtering it smears out.
+		mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	else:
+		mat.albedo_texture = _noise_texture(10, 0.012, 5, _ramp(colors))
 	mat.normal_enabled = true
 	mat.normal_texture = _noise_texture(11, 0.02, 5, null, bump)
 	mat.uv1_triplanar = true
@@ -225,9 +241,12 @@ func _rough_material(colors: Array[Color], patch: float, grain: float, bump: flo
 
 
 func _ground_material() -> StandardMaterial3D:
+	var path: String = MARS_GROUND_TEXTURE if body == Body.MARS else MOON_GROUND_TEXTURE
+	var texture: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	var patch: float = GROUND_TEXTURE_PATCH if texture != null else 70.0
 	if body == Body.MARS:
-		return _rough_material([Color(0.36, 0.17, 0.1), Color(0.62, 0.33, 0.18), Color(0.8, 0.5, 0.3)], 70.0, 4.0, 7.0)
-	return _rough_material([Color(0.13, 0.13, 0.14), Color(0.33, 0.33, 0.33), Color(0.6, 0.59, 0.57)], 70.0, 4.0, 12.0)
+		return _rough_material([Color(0.36, 0.17, 0.1), Color(0.62, 0.33, 0.18), Color(0.8, 0.5, 0.3)], patch, 4.0, 7.0, texture)
+	return _rough_material([Color(0.13, 0.13, 0.14), Color(0.33, 0.33, 0.33), Color(0.6, 0.59, 0.57)], patch, 4.0, 12.0, texture)
 
 
 func _rock_material() -> StandardMaterial3D:

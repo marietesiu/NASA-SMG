@@ -69,6 +69,14 @@ function computeCategoryCost(categoryId) {
   return option ? Number(option.cost_m || 0) : 0;
 }
 
+function getMissionWarningText() {
+  const mission = getMission();
+  if (mission.id !== "delivering_to_mars") {
+    return "";
+  }
+  return "Mars cargo: +200 kg additional payload. This shipment contains radioactive material and requires special handling.";
+}
+
 function computeVehicleStats() {
   let dryMass = 0;
   let propellant = 0;
@@ -78,6 +86,11 @@ function computeVehicleStats() {
   let qAlphaLimit = 0;
   let tankPressureLimit = 0;
   let heatLimit = 0;
+  const mission = getMission();
+
+  if (mission.id === "delivering_to_mars") {
+    dryMass += 200;
+  }
 
   state.catalog.categories.forEach((category) => {
     const option = getCategoryOption(category.id, getSelectedComponent(category.id));
@@ -106,7 +119,6 @@ function computeVehicleStats() {
     }
   });
 
-  const mission = getMission();
   const difficulty = getDifficulty();
   const hazardMultiplier = Math.max(Number(difficulty.hazard || 1), 0.01);
   const fuelMultiplier = difficulty.fuel || 1;
@@ -125,7 +137,9 @@ function computeVehicleStats() {
     heatLimit: heatLimit / hazardMultiplier,
     totalCost: state.catalog.categories.reduce((sum, category) => sum + computeCategoryCost(category.id), 0),
     mission,
-    difficulty
+    difficulty,
+    cargoMassKg: mission.id === "delivering_to_mars" ? 200 : 0,
+    radioactiveMaterial: mission.id === "delivering_to_mars"
   };
 }
 
@@ -214,6 +228,11 @@ function renderSummary() {
   document.getElementById("difficultyDescription").textContent = stats.difficulty.description;
 
   const mission = getMission();
+  const missionWarning = document.getElementById("missionWarning");
+  const warningText = getMissionWarningText();
+  missionWarning.textContent = warningText;
+  missionWarning.hidden = !warningText;
+
   document.getElementById("missionSummaryName").textContent = mission.name;
   document.getElementById("missionSummaryTarget").textContent = mission.name;
   document.getElementById("missionSummaryDifficulty").textContent = getDifficulty().label;
@@ -249,6 +268,7 @@ async function loadCatalog() {
 }
 
 async function launchMission() {
+  const mission = getMission();
   const payload = {
     mission_id: state.missionId,
     difficulty: state.difficulty,
@@ -256,7 +276,12 @@ async function launchMission() {
     audio_volume: state.audioVolume,
     budget_limit_m: state.budgetLimit,
     selected_components: state.selectedComponents,
-    mission_name: getMission().name
+    mission_name: mission.name,
+    cargo_mass_kg: mission.id === "delivering_to_mars" ? 200 : 0,
+    radioactive_material: mission.id === "delivering_to_mars",
+    cargo_warning: mission.id === "delivering_to_mars"
+      ? "Mars mission cargo includes 200 kg of radioactive material."
+      : ""
   };
 
   updateLaunchMessage("Sending mission to the local Godot launcher…");

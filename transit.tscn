@@ -1,0 +1,57 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://transit.gd" id="1_transit"]
+[ext_resource type="Script" path="res://celestial_body.gd" id="2_body"]
+[ext_resource type="Script" path="res://rocket.gd" id="3_rocket"]
+[ext_resource type="Shader" path="res://sky.gdshader" id="4_sky"]
+[ext_resource type="Texture2D" path="res://textures/2k_stars_milky_way.jpg" id="5_stars"]
+
+[sub_resource type="ShaderMaterial" id="Sky_mat"]
+shader = ExtResource("4_sky")
+shader_parameter/stars = ExtResource("5_stars")
+shader_parameter/zoom = 4.0
+shader_parameter/star_brightness = 3.0
+shader_parameter/star_amount = 1.0
+shader_parameter/top_color = Color(0, 0, 0, 1)
+shader_parameter/horizon_color = Color(0, 0, 0, 1)
+
+[sub_resource type="Sky" id="Sky_res"]
+sky_material = SubResource("Sky_mat")
+
+[sub_resource type="Environment" id="Env_res"]
+background_mode = 2
+sky = SubResource("Sky_res")
+ambient_light_source = 2
+ambient_light_color = Color(0.6, 0.7, 0.9, 1)
+ambient_light_energy = 0.12
+tonemap_mode = 2
+
+[node name="Transit" type="Node3D"]
+script = ExtResource("1_transit")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_res")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+light_energy = 2.2
+shadow_enabled = true
+directional_shadow_max_distance = 600.0
+
+[node name="Earth" type="Node3D" parent="."]
+script = ExtResource("2_body")
+spin_degrees_per_second = 1.5
+auto_build = false
+
+[node name="Destination" type="Node3D" parent="."]
+script = ExtResource("2_body")
+spin_degrees_per_second = 0.5
+auto_build = false
+
+[node name="Rocket" type="Node3D" parent="."]
+script = ExtResource("3_rocket")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+fov = 70.0
+near = 1.0
+far = 1000000.0

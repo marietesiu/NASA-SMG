@@ -1,3 +1,5 @@
+@import url("https://fonts.cdnfonts.com/css/satoshi");
+
 :root {
   --bg-0: #040b18;
   --bg-1: #071a2b;
@@ -15,7 +17,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; font-family: "Segoe UI", Tahoma, sans-serif; background: radial-gradient(circle at top, rgba(69, 118, 205, 0.2), transparent 30%), linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, #030a12); color: var(--text); }
+html, body { margin: 0; min-height: 100%; font-family: "Satoshi", "Segoe UI", Tahoma, sans-serif; background: radial-gradient(circle at top, rgba(69, 118, 205, 0.2), transparent 30%), linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, #030a12); color: var(--text); }
 body { min-height: 100vh; }
 button, select, input { font: inherit; }
 button { cursor: pointer; border: none; border-radius: 12px; transition: transform 0.12s ease, opacity 0.12s ease; }
@@ -117,6 +119,11 @@ h1 { font-size: clamp(1.4rem, 3vw, 2.2rem); }
   font-size: 0.72rem; text-transform: uppercase; color: var(--primary); letter-spacing: 0.15em; font-weight: 700;
 }
 
+.mission-warning {
+  margin-top: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255, 108, 123, 0.28);
+  background: rgba(98, 22, 32, 0.35); color: #ffd7dc; font-size: 0.81rem; line-height: 1.5;
+}
+
 .mission-card ul {
   padding: 0; margin: 0; list-style: none; display: grid; gap: 12px;
 }
@@ -204,7 +211,11 @@ select {
 input[type="range"] { accent-color: var(--primary); }
 
 .launch-center {
-  text-align: center; display: grid; place-items: center; gap: 14px; min-height: 340px;
+  text-align: center; display: grid; place-items: center; gap: 14px; min-height: 340px; max-width: 100%;
+}
+
+#launchMessage {
+  max-width: 100%; font-size: 0.95rem; line-height: 1.5; white-space: normal; word-break: break-word;
 }
 .launch-badge {
   display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid rgba(108, 227, 255, 0.38); background: rgba(10, 28, 38, 0.72); color: var(--primary); padding: 0.45rem 0.8rem; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.7rem; font-weight: 700;

@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://addons/low_poly_launch_complex/models/lamp_post_lc_model.glb" id="1"]
+[ext_resource type="Script" path="res://addons/low_poly_launch_complex/machine.gd" id="2"]
+
+[sub_resource type="BoxShape3D" id="box0"]
+size = Vector3(0.2400, 0.0200, 0.5000)
+
+[node name="lamp_post_lc" instance=ExtResource("1")]
+script = ExtResource("2")
+kind = "powered"
+on = true
+lit = PackedStringArray("lamp_post_lc_lens")
+
+[node name="Collision" type="StaticBody3D" parent="lamp_post_lc/lamp_post_lc_lens"]
+
+[node name="Box" type="CollisionShape3D" parent="lamp_post_lc/lamp_post_lc_lens/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0000, 6.1200, 1.4500)
+shape = SubResource("box0")

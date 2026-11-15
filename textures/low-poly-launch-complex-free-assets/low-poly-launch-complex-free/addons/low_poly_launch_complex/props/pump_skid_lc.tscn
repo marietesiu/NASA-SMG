@@ -1,0 +1,84 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="PackedScene" path="res://addons/low_poly_launch_complex/models/pump_skid_lc_model.glb" id="1"]
+[ext_resource type="Script" path="res://addons/low_poly_launch_complex/machine.gd" id="2"]
+
+[sub_resource type="BoxShape3D" id="box0"]
+size = Vector3(3.0000, 0.1500, 1.6000)
+
+[sub_resource type="BoxShape3D" id="box1"]
+size = Vector3(2.3320, 1.2500, 1.2950)
+
+[sub_resource type="BoxShape3D" id="box2"]
+size = Vector3(0.0300, 0.4000, 0.4000)
+
+[sub_resource type="BoxShape3D" id="box3"]
+size = Vector3(0.0300, 0.4000, 0.4000)
+
+[sub_resource type="BoxShape3D" id="box4"]
+size = Vector3(0.3280, 1.3000, 0.5000)
+
+[sub_resource type="BoxShape3D" id="box5"]
+size = Vector3(0.0600, 0.2600, 0.0600)
+
+[sub_resource type="BoxShape3D" id="box6"]
+size = Vector3(0.0250, 0.0380, 0.0400)
+
+[sub_resource type="BoxShape3D" id="box7"]
+size = Vector3(0.0250, 0.0380, 0.0400)
+
+[node name="pump_skid_lc" instance=ExtResource("1")]
+script = ExtResource("2")
+kind = "switch"
+clip = "start"
+run = "run"
+lit = PackedStringArray("pump_skid_lc_lamp")
+idle = PackedStringArray("pump_skid_lc_lamp_idle")
+
+[node name="Collision" type="StaticBody3D" parent="pump_skid_lc"]
+
+[node name="Box" type="CollisionShape3D" parent="pump_skid_lc/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0000, 0.0750, -0.0000)
+shape = SubResource("box0")
+
+[node name="Collision" type="StaticBody3D" parent="pump_skid_lc/pump_skid_lc_set"]
+
+[node name="Box" type="CollisionShape3D" parent="pump_skid_lc/pump_skid_lc_set/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1960, 0.7750, -0.0000)
+shape = SubResource("box1")
+
+[node name="Collision" type="StaticBody3D" parent="pump_skid_lc/pump_skid_lc_set/pump_skid_lc_fan_0"]
+
+[node name="Box" type="CollisionShape3D" parent="pump_skid_lc/pump_skid_lc_set/pump_skid_lc_fan_0/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0000, 0.0000, -0.0000)
+shape = SubResource("box2")
+
+[node name="Collision" type="StaticBody3D" parent="pump_skid_lc/pump_skid_lc_set/pump_skid_lc_fan_1"]
+
+[node name="Box" type="CollisionShape3D" parent="pump_skid_lc/pump_skid_lc_set/pump_skid_lc_fan_1/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0000, 0.0000, -0.0000)
+shape = SubResource("box3")
+
+[node name="Collision" type="StaticBody3D" parent="pump_skid_lc/pump_skid_lc_panel"]
+
+[node name="Box" type="CollisionShape3D" parent="pump_skid_lc/pump_skid_lc_panel/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2640, 0.8000, -0.0000)
+shape = SubResource("box4")
+
+[node name="Collision" type="StaticBody3D" parent="pump_skid_lc/pump_skid_lc_lever"]
+
+[node name="Box" type="CollisionShape3D" parent="pump_skid_lc/pump_skid_lc_lever/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0000, 0.1300, -0.0000)
+shape = SubResource("box5")
+
+[node name="Collision" type="StaticBody3D" parent="pump_skid_lc/pump_skid_lc_lamp_idle"]
+
+[node name="Box" type="CollisionShape3D" parent="pump_skid_lc/pump_skid_lc_lamp_idle/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4365, 0.9700, 0.0500)
+shape = SubResource("box6")
+
+[node name="Collision" type="StaticBody3D" parent="pump_skid_lc/pump_skid_lc_lamp"]
+
+[node name="Box" type="CollisionShape3D" parent="pump_skid_lc/pump_skid_lc_lamp/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4365, 0.9700, -0.0500)
+shape = SubResource("box7")

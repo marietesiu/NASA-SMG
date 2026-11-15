@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://addons/low_poly_launch_complex/models/pressure_gauge_lc_model.glb" id="1"]
+[ext_resource type="Script" path="res://addons/low_poly_launch_complex/machine.gd" id="2"]
+
+[sub_resource type="BoxShape3D" id="box0"]
+size = Vector3(0.2840, 1.7520, 0.2500)
+
+[sub_resource type="BoxShape3D" id="box1"]
+size = Vector3(0.0841, 0.0841, 0.0080)
+
+[node name="pressure_gauge_lc" instance=ExtResource("1")]
+script = ExtResource("2")
+kind = "gauge"
+level = "read"
+
+[node name="Collision" type="StaticBody3D" parent="pressure_gauge_lc"]
+
+[node name="Box" type="CollisionShape3D" parent="pressure_gauge_lc/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0000, 0.8760, -0.0000)
+shape = SubResource("box0")
+
+[node name="Collision" type="StaticBody3D" parent="pressure_gauge_lc/pressure_gauge_lc_needle"]
+
+[node name="Box" type="CollisionShape3D" parent="pressure_gauge_lc/pressure_gauge_lc_needle/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0301, -0.0300, 0.0040)
+shape = SubResource("box1")

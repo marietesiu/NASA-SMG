@@ -191,6 +191,10 @@ class LauncherHandler(SimpleHTTPRequestHandler):
             payload["target_altitude_km"] = float(mission["target_altitude_km"])
             payload["target_inclination_deg"] = float(mission["target_inclination_deg"])
             payload["budget_limit_m"] = budget_limit
+            if payload.get("mission_id") == "delivering_to_mars":
+                payload["cargo_mass_kg"] = 200.0
+                payload["radioactive_material"] = True
+                payload["cargo_warning"] = "Mars mission cargo includes 200 kg of radioactive material."
 
             if process_running_for_project(PROJECT_ROOT):
                 raise RuntimeError("A Godot mission is already running from this project root.")

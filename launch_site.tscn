@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://textures/Large Building by Kenney - ppwtREejXg/large_buildingA.obj" id="1_building"]
+[ext_resource type="PackedScene" path="res://textures/Water Tank Floor by Quaternius - xgsh3kWbAM/WaterTank_Floor.fbx" id="2_tank"]
+
+[node name="LaunchSite" type="Node3D"]
+
+[node name="Buildings" type="Node3D" parent="."]
+
+[node name="BuildingNorth" type="MeshInstance3D" parent="Buildings"]
+transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, -140, 0, -170)
+mesh = ExtResource("1_building")
+
+[node name="BuildingSouth" type="MeshInstance3D" parent="Buildings"]
+transform = Transform3D(0, 0, 20, 0, 20, 0, -20, 0, 0, -170, 0, 150)
+mesh = ExtResource("1_building")
+
+[node name="BuildingSmall" type="MeshInstance3D" parent="Buildings"]
+transform = Transform3D(14, 0, 0, 0, 14, 0, 0, 0, 14, -40, 0, 210)
+mesh = ExtResource("1_building")
+
+[node name="WaterTanks" type="Node3D" parent="."]
+
+[node name="WaterTank1" parent="WaterTanks" instance=ExtResource("2_tank")]
+transform = Transform3D(0, 0, 8, 0, 8, 0, -8, 0, 0, -60, 0, -130)
+
+[node name="WaterTank2" parent="WaterTanks" instance=ExtResource("2_tank")]
+transform = Transform3D(0, 0, 8, 0, 8, 0, -8, 0, 0, -60, 0, -160)
+
+[node name="WaterTank3" parent="WaterTanks" instance=ExtResource("2_tank")]
+transform = Transform3D(0, 0, 8, 0, 8, 0, -8, 0, 0, -90, 0, 120)

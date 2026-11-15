@@ -63,6 +63,7 @@ const LANDING_SCENES := {
 @onready var _camera: LaunchCamera = $LaunchCamera
 @onready var _ground: MeshInstance3D = $Ground
 @onready var _pad: MeshInstance3D = $Pad
+@onready var _site: Node3D = $LaunchSite
 @onready var _earth: MeshInstance3D = $Earth
 @onready var _sun: DirectionalLight3D = $Sun
 @onready var _sky: ShaderMaterial = $WorldEnvironment.environment.sky.sky_material
@@ -156,9 +157,12 @@ func _load_build_data() -> Dictionary:
 
 
 func _ready() -> void:
-	if LANDING_SCENES.has(_read_mission_config().get("mission_id", "")):
+	var config: Dictionary = _read_mission_config()
+	if LANDING_SCENES.has(config.get("mission_id", "")):
 		_sim.playback_duration = landing_mission_ascent_time
 		success_hold = landing_mission_success_hold
+	if config.get("mission_id", "") == "delivering_to_mars":
+		_status.text = "Mars mission alert: +200 kg cargo with radioactive material on board"
 	_sim.ready_to_launch.connect(_on_ready_to_launch)
 	_sim.failed.connect(_on_failed.bind("OpenRocket"))
 	_orbit.failed.connect(_on_orbit_failed)
@@ -224,6 +228,8 @@ func _set_phase(phase: Phase) -> void:
 
 
 func _update_layer(altitude_km: float) -> void:
+	if _sim.vehicle_failed or _phase == Phase.SUCCESS:
+		return
 	var layer: int = 0
 	while layer < LAYERS.size() - 1 and altitude_km >= LAYERS[layer].top_km:
 		layer += 1
@@ -257,6 +263,7 @@ func _enter_orbit() -> void:
 	_altitude_bar.hide()
 	_ground.hide()
 	_pad.hide()
+	_site.hide()
 	_earth.show()
 	_earth.scale = Vector3.ONE * GmatOrbit.EARTH_RADIUS_KM * orbit_units_per_km
 	_sky.set_shader_parameter("star_amount", 1.0)
@@ -313,7 +320,11 @@ func _on_ready_to_launch(rocket_name: String, length: float, _radius: float) -> 
 	_rocket.build(length, _load_build_data())
 	_camera.frame_target(_rocket.length)
 	_ready_to_launch = true
-	_status.text = "Press SPACE to launch"
+	var config: Dictionary = _read_mission_config()
+	if config.get("mission_id", "") == "delivering_to_mars":
+		_status.text = "Mars cargo: 200 kg radioactive material aboard. Press SPACE to launch"
+	else:
+		_status.text = "Press SPACE to launch"
 	print("OpenRocket design: %s. Camera elevation angle: %.1f deg" % [rocket_name, _camera.get_elevation_angle()])
 
 

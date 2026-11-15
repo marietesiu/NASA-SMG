@@ -1,0 +1,28 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://addons/low_poly_launch_complex/models/beacon_lc_model.glb" id="1"]
+[ext_resource type="Script" path="res://addons/low_poly_launch_complex/machine.gd" id="2"]
+
+[sub_resource type="BoxShape3D" id="box0"]
+size = Vector3(0.3500, 3.3800, 0.3500)
+
+[sub_resource type="BoxShape3D" id="box1"]
+size = Vector3(0.2880, 0.3040, 0.2808)
+
+[node name="beacon_lc" instance=ExtResource("1")]
+script = ExtResource("2")
+kind = "powered"
+run = "spin"
+lit = PackedStringArray("beacon_lc_lamp")
+
+[node name="Collision" type="StaticBody3D" parent="beacon_lc"]
+
+[node name="Box" type="CollisionShape3D" parent="beacon_lc/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0000, 1.6900, -0.0000)
+shape = SubResource("box0")
+
+[node name="Collision" type="StaticBody3D" parent="beacon_lc/beacon_lc_lamp"]
+
+[node name="Box" type="CollisionShape3D" parent="beacon_lc/beacon_lc_lamp/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0000, 0.2320, -0.0000)
+shape = SubResource("box1")
