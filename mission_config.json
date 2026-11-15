@@ -1,12 +1,12 @@
 {
-  "mission_id": "delivering_to_mars",
-  "difficulty": "extreme",
+  "mission_id": "around_earth",
+  "difficulty": "normal",
   "audio_enabled": true,
   "audio_volume": 0.8,
-  "budget_limit_m": 51.29279999999999,
+  "budget_limit_m": 61.376000000000005,
   "selected_components": {
-    "nose_cone_tip": "nose_cone_tip_0",
-    "frustum": "frustum_0",
+    "nose_cone_tip": "nose_cone_tip_1",
+    "frustum": "frustum_1",
     "bulk_plates": "bulk_plates_1",
     "payload_adapter": "payload_adapter_1",
     "frames_skirt": "frames_skirt_1",
@@ -23,11 +23,11 @@
     "separation_system": "separation_system_1",
     "parachute_recovery": "parachute_recovery_1"
   },
-  "mission_name": "Delivering to Mars!",
-  "cargo_mass_kg": 200.0,
-  "radioactive_material": true,
-  "cargo_warning": "Mars mission cargo includes 200 kg of radioactive material.",
-  "target_altitude_km": 287000000.0,
-  "target_inclination_deg": 25.0,
+  "mission_name": "Around Earth",
+  "cargo_mass_kg": 0,
+  "radioactive_material": false,
+  "cargo_warning": "",
+  "target_altitude_km": 400.0,
+  "target_inclination_deg": 28.5,
   "transit_api_url": "http://127.0.0.1:8080/api"
 }

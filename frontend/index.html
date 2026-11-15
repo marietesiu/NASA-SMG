@@ -237,8 +237,8 @@
         <section id="launchScreen" class="screen">
           <div class="panel launch-panel">
             <div class="launch-center">
-              <div class="launch-badge">Simulation status</div>
-              <h2>Mission launched in Godot</h2>
+              <div id="launchBadge" class="launch-badge">Simulation status</div>
+              <h2 id="launchTitle">Mission launched in Godot</h2>
               <p id="launchMessage">The mission was sent to the local launcher.</p>
               <div class="button-row">
                 <button id="launchBackBtn" class="secondary-button">Back</button>
@@ -247,6 +247,20 @@
             </div>
           </div>
         </section>
+
+        <dialog id="missionChoiceDialog" class="choice-dialog" aria-labelledby="choiceTitle">
+          <div class="choice-dialog-content">
+            <p id="choiceEyebrow" class="eyebrow">Preflight review / 01</p>
+            <h2 id="choiceTitle">Choose a unit standard</h2>
+            <p id="choiceDescription" class="choice-description"></p>
+            <div id="choiceOptions" class="choice-options"></div>
+            <p id="choiceFact" class="choice-fact" hidden></p>
+            <div class="choice-actions">
+              <button id="choiceCancelBtn" class="secondary-button" type="button">Cancel</button>
+              <button id="choiceContinueBtn" class="primary-button" type="button">Continue</button>
+            </div>
+          </div>
+        </dialog>
 
         <section id="transitScreen" class="screen">
           <div class="panel transit-panel">

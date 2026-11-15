@@ -5,12 +5,31 @@ const DEFAULT_STATE = {
   audioEnabled: true,
   audioVolume: 0.8,
   budgetLimit: 54.8,
+  unitSystem: "SI",
+  repairSpend: 0,
   selectedComponents: {},
   currentScreen: "menuScreen",
   screenHistory: []
 };
 
 const state = { ...DEFAULT_STATE };
+const MISSION_FACTS = [
+  "Mars Climate Orbiter was lost after a navigation data mismatch between imperial and metric units.",
+  "Ariane 5 Flight 501 was lost when reused software encountered a numeric overflow.",
+  "Apollo 11's guidance computer prioritized critical tasks during a flood of alarms.",
+  "Dawn had xenon left for its ion engines, but ran out of hydrazine for pointing.",
+  "NEAR Shoemaker's overly strict abort logic discarded fuel and delayed its arrival.",
+  "Galileo's jammed high-gain antenna forced the mission to rely on a smaller backup.",
+  "Curiosity landed autonomously because its radio signal took about 14 minutes to reach Earth.",
+  "MRO used hundreds of shallow atmospheric passes to aerobrake into Mars orbit.",
+  "Juno needs enormous solar wings because Jupiter receives far less sunlight than Earth.",
+  "Apollo 13 conserved power by shutting down equipment and operating on a tiny electrical budget.",
+  "Voyager 1 was recovered by moving software functions across healthy memory regions.",
+  "A solar conjunction can interrupt radio communications with Mars for days at a time.",
+  "Cold gas thrusters are simple and reliable, while high-performance bipropellants need more complex plumbing.",
+  "A small CubeSat can reach the Moon on a long, low-energy route instead of a fast direct transfer."
+];
+const choiceFlow = { step: "", fact: "", incident: null };
 let transitFrameSource = null;
 let transitSession = null;
 
@@ -200,10 +219,12 @@ function renderDifficultyList() {
 function renderBudgetBar() {
   const stats = computeVehicleStats();
   const limit = Number(state.budgetLimit || 1);
-  const fillPercent = Math.min((stats.totalCost / limit) * 100, 100);
+  const displayedSpend = stats.totalCost + state.repairSpend;
+  const fillPercent = Math.min((displayedSpend / limit) * 100, 100);
   const fill = document.getElementById("budgetBar");
   fill.style.width = `${fillPercent}%`;
-  document.getElementById("budgetText").textContent = `${stats.totalCost.toFixed(1)} / ${limit.toFixed(1)} M$`;
+  const repairNote = state.repairSpend > 0 ? ` (${state.repairSpend.toFixed(1)} repairs)` : "";
+  document.getElementById("budgetText").textContent = `${displayedSpend.toFixed(1)} / ${limit.toFixed(1)} M$${repairNote}`;
 
   const budgetStatus = fillPercent > 100 ? "over" : fillPercent > 75 ? "warning" : "ok";
   fill.style.background = budgetStatus === "ok"
@@ -290,6 +311,97 @@ function renderMissionInfo() {
 
 function updateLaunchMessage(text) {
   document.getElementById("launchMessage").textContent = text;
+}
+
+function renderChoiceDialog() {
+  const title = document.getElementById("choiceTitle");
+  const eyebrow = document.getElementById("choiceEyebrow");
+  const description = document.getElementById("choiceDescription");
+  const options = document.getElementById("choiceOptions");
+  const fact = document.getElementById("choiceFact");
+  const continueButton = document.getElementById("choiceContinueBtn");
+  options.replaceChildren();
+  fact.textContent = `Fun fact: ${choiceFlow.fact}`;
+  fact.hidden = false;
+
+  if (choiceFlow.step === "units") {
+    eyebrow.textContent = "Preflight review / 01";
+    title.textContent = "Choose a unit standard";
+    description.textContent = "Set the convention for this mission's paperwork.";
+    ["SI", "US customary"].forEach((unit) => {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.className = `choice-option ${state.unitSystem === unit ? "selected" : ""}`;
+      option.textContent = unit;
+      option.setAttribute("aria-pressed", String(state.unitSystem === unit));
+      option.addEventListener("click", () => {
+        state.unitSystem = unit;
+        renderChoiceDialog();
+      });
+      options.append(option);
+    });
+    continueButton.textContent = "Continue to inspection";
+    continueButton.hidden = false;
+  } else {
+    const { category, repairCost } = choiceFlow.incident;
+    eyebrow.textContent = "Preflight review / 02";
+    title.textContent = "Inspection discrepancy";
+    description.textContent = `${category.name} has been flagged for a possible fault. Replace it for ${formatMillions(repairCost)}, or continue without the repair?`;
+    const replaceButton = document.createElement("button");
+    replaceButton.type = "button";
+    replaceButton.className = "choice-option selected";
+    replaceButton.textContent = `Replace component · ${formatMillions(repairCost)}`;
+    replaceButton.addEventListener("click", () => resolveIncident(true));
+    const skipButton = document.createElement("button");
+    skipButton.type = "button";
+    skipButton.className = "choice-option";
+    skipButton.textContent = "Continue without repair";
+    skipButton.addEventListener("click", () => resolveIncident(false));
+    options.append(replaceButton, skipButton);
+    continueButton.hidden = true;
+  }
+}
+
+function beginMissionChoices() {
+  choiceFlow.step = "units";
+  choiceFlow.fact = MISSION_FACTS[Math.floor(Math.random() * MISSION_FACTS.length)];
+  choiceFlow.incident = null;
+  renderChoiceDialog();
+  document.getElementById("missionChoiceDialog").showModal();
+}
+
+function continueMissionChoices() {
+  const category = state.catalog.categories[Math.floor(Math.random() * state.catalog.categories.length)];
+  const option = getCategoryOption(category.id, getSelectedComponent(category.id));
+  const baseCost = Number(option?.cost_m || 1);
+  choiceFlow.incident = {
+    category,
+    repairCost: Math.max(0.2, Math.min(3, baseCost * (0.04 + Math.random() * 0.06)))
+  };
+  choiceFlow.fact = MISSION_FACTS[Math.floor(Math.random() * MISSION_FACTS.length)];
+  choiceFlow.step = "incident";
+  renderChoiceDialog();
+}
+
+function resolveIncident(repaired) {
+  document.getElementById("missionChoiceDialog").close();
+  if (repaired) {
+    state.repairSpend += choiceFlow.incident.repairCost;
+    renderBudgetBar();
+    launchMission();
+    return;
+  }
+
+  if (Math.random() < 0.25) {
+    document.getElementById("launchBadge").textContent = "Mission terminated";
+    document.getElementById("launchTitle").textContent = "Mission failed";
+    updateLaunchMessage(`A fault in the ${choiceFlow.incident.category.name} caused mission loss after the repair was deferred. No launch order was sent.`);
+    document.getElementById("runtimeStatus").textContent = "Mission failed";
+    showScreen("launchScreen");
+    return;
+  }
+
+  launchMission();
 }
 
 function formatTransitCoefficient(value) {
@@ -395,6 +507,8 @@ async function launchMission() {
       : ""
   };
 
+  document.getElementById("launchBadge").textContent = "Simulation status";
+  document.getElementById("launchTitle").textContent = "Mission launched in Godot";
   updateLaunchMessage("Sending mission to the local Godot launcher…");
   showScreen("launchScreen");
 
@@ -426,7 +540,7 @@ function bindEvents() {
   document.getElementById("backToMenuBtn").addEventListener("click", () => goBack());
   document.getElementById("settingsBackBtn").addEventListener("click", () => goBack());
   document.getElementById("launchBackBtn").addEventListener("click", () => goBack());
-  document.getElementById("launchAgainBtn").addEventListener("click", () => launchMission());
+  document.getElementById("launchAgainBtn").addEventListener("click", beginMissionChoices);
   document.getElementById("settingsFromBuilderBtn").addEventListener("click", () => showScreen("settingsScreen"));
   document.getElementById("transitBackBtn").addEventListener("click", () => goBack());
   document.getElementById("globalResetBtn").addEventListener("click", resetEverything);
@@ -455,7 +569,11 @@ function bindEvents() {
     state.audioVolume = Number(event.target.value);
   });
 
-  document.getElementById("launchSimBtn").addEventListener("click", launchMission);
+  document.getElementById("launchSimBtn").addEventListener("click", beginMissionChoices);
+  document.getElementById("choiceContinueBtn").addEventListener("click", continueMissionChoices);
+  document.getElementById("choiceCancelBtn").addEventListener("click", () => {
+    document.getElementById("missionChoiceDialog").close();
+  });
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
