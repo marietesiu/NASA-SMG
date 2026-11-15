@@ -135,13 +135,22 @@ func get_state() -> Dictionary:
 		var acceleration_ramp: float = decay * (elapsed - decay * (1.0 - exp(-elapsed / decay)))
 		var velocity_ramp: float = decay * (1.0 - exp(-elapsed / decay))
 		var launch_axis: Vector3 = _axes[0].normalized()
+
+		# Strong exponential kick after T+22s to create a visible late-stage surge.
+		var surge_elapsed: float = maxf(elapsed - 22.0, 0.0)
+		var surge_factor: float = exp(surge_elapsed / 4.0)
+		var surge_extra_velocity: float = 90.0 * (surge_factor - 1.0)
+		var surge_extra_position: float = 130.0 * (surge_factor - 1.0) * (surge_elapsed + 1.0)
+
 		position += launch_axis * (
 			EARTH_LAUNCH_INITIAL_VELOCITY_BOOST_MPS * elapsed
 			+ EARTH_LAUNCH_ACCELERATION_BOOST_MPS2 * acceleration_ramp
+			+ surge_extra_position
 		)
 		velocity += launch_axis * (
 			EARTH_LAUNCH_INITIAL_VELOCITY_BOOST_MPS
 			+ EARTH_LAUNCH_ACCELERATION_BOOST_MPS2 * velocity_ramp
+			+ surge_extra_velocity
 		)
 	return {
 		"position": position,
