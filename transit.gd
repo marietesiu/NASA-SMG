@@ -219,8 +219,10 @@ func _setup_rocket(config: Dictionary) -> void:
 	_rocket.build(_rocket.length / _rocket.visual_scale, _rocket_visuals(config))
 	_rocket_length = _rocket.length
 	if lander_only:
-		_rocket.make_lander()
+		_rocket.make_lander("mars" if _mission_id == "delivering_to_mars" else "moon")
 		_rocket_length = _rocket.length * 0.27 # what is left above the upper stage's base
+	else:
+		_rocket.make_cruiser()
 	_rocket.engines_enabled = false
 	_fins = Marker3D.new()
 	_fins.name = "Fins"

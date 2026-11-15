@@ -123,7 +123,7 @@ func _ready() -> void:
 	_load_components()
 	_plan_landing()
 	_plan_manoeuvre()
-	_rocket.make_lander()
+	_rocket.make_lander("mars" if body == PlanetSurface.Body.MARS else "moon")
 	($Sun as DirectionalLight3D).look_at_from_position(sun_from.normalized() * 100.0, Vector3.ZERO)
 	# The camera stands on the ground and stays there for the whole landing.
 	_camera.global_position = camera_position \

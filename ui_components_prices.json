@@ -1,0 +1,529 @@
+[
+  {
+    "category_id": "nose_cone_tip",
+    "category_name": "Nose cone / tip",
+    "description": "Forward fairing and thermal tip geometry.",
+    "options": [
+      {
+        "id": "nose_cone_tip_0",
+        "name": "Classic conical tip",
+        "tier": "SLS Block 1",
+        "description": "Reliable ogive-like forward shape with moderate thermal protection.",
+        "cost_m": 2.2,
+        "price_millions_usd": 2.2
+      },
+      {
+        "id": "nose_cone_tip_1",
+        "name": "Pyramid ogive",
+        "tier": "SLS Block 1B / 2",
+        "description": "Slender nose with better aerodynamic stability and improved insulation.",
+        "cost_m": 3.4,
+        "price_millions_usd": 3.4
+      },
+      {
+        "id": "nose_cone_tip_2",
+        "name": "Starship flared tip",
+        "tier": "Starship V3",
+        "description": "High-temperature flared nose for hot reentry and extended interplanetary loads.",
+        "cost_m": 4.9,
+        "price_millions_usd": 4.9
+      }
+    ]
+  },
+  {
+    "category_id": "frustum",
+    "category_name": "Frustum / shoulder",
+    "description": "Upper-body taper and in-between cross-section transitions.",
+    "options": [
+      {
+        "id": "frustum_0",
+        "name": "Short taper",
+        "tier": "SLS Block 1",
+        "description": "Shortened transition section for conventional payload enclosures.",
+        "cost_m": 1.1,
+        "price_millions_usd": 1.1
+      },
+      {
+        "id": "frustum_1",
+        "name": "Expanded interstage",
+        "tier": "SLS Block 1B / 2",
+        "description": "Longer transition section for larger payload volumes and moderate stability margin.",
+        "cost_m": 1.8,
+        "price_millions_usd": 1.8
+      },
+      {
+        "id": "frustum_2",
+        "name": "V3 flared shoulder",
+        "tier": "Starship V3",
+        "description": "Large, low-drag taper for high-mass deep-space missions.",
+        "cost_m": 2.6,
+        "price_millions_usd": 2.6
+      }
+    ]
+  },
+  {
+    "category_id": "bulk_plates",
+    "category_name": "Bulkheads / structural plates",
+    "description": "Primary ring loads and section interfaces.",
+    "options": [
+      {
+        "id": "bulk_plates_0",
+        "name": "Aluminum louvers",
+        "tier": "SLS Block 1",
+        "description": "Standard ring structure with conservative loads.",
+        "cost_m": 1.4,
+        "price_millions_usd": 1.4
+      },
+      {
+        "id": "bulk_plates_1",
+        "name": "Titanium frame ring",
+        "tier": "SLS Block 1B / 2",
+        "description": "Better structural headroom for longer stages and dynamic bending loads.",
+        "cost_m": 2.1,
+        "price_millions_usd": 2.1
+      },
+      {
+        "id": "bulk_plates_2",
+        "name": "Composite exoskeleton",
+        "tier": "Starship V3",
+        "description": "Advanced composite rings with large safety margin and low mass penalty.",
+        "cost_m": 3.0,
+        "price_millions_usd": 3.0
+      }
+    ]
+  },
+  {
+    "category_id": "payload_adapter",
+    "category_name": "Payload adapter",
+    "description": "Connection between the payload and the upper stage.",
+    "options": [
+      {
+        "id": "payload_adapter_0",
+        "name": "Standard clamp ring",
+        "tier": "SLS Block 1",
+        "description": "Foundational payload interface for light to medium payloads.",
+        "cost_m": 1.1,
+        "price_millions_usd": 1.1
+      },
+      {
+        "id": "payload_adapter_1",
+        "name": "Dual-bay adapter",
+        "tier": "SLS Block 1B / 2",
+        "description": "Allows dual-stack payloads while preserving stage stiffness.",
+        "cost_m": 1.9,
+        "price_millions_usd": 1.9
+      },
+      {
+        "id": "payload_adapter_2",
+        "name": "High-mass docking collar",
+        "tier": "Starship V3",
+        "description": "Larger, stronger interface for deep-space cargo and station modules.",
+        "cost_m": 2.8,
+        "price_millions_usd": 2.8
+      }
+    ]
+  },
+  {
+    "category_id": "frames_skirt",
+    "category_name": "Frames / skirt",
+    "description": "Inter-stage skirt and frame stiffness.",
+    "options": [
+      {
+        "id": "frames_skirt_0",
+        "name": "Light skirt",
+        "tier": "SLS Block 1",
+        "description": "Conventional frame ring for payload support and staging alignment.",
+        "cost_m": 1.0,
+        "price_millions_usd": 1.0
+      },
+      {
+        "id": "frames_skirt_1",
+        "name": "Reinforced skirt",
+        "tier": "SLS Block 1B / 2",
+        "description": "Heavier frame to keep resonances under control during ascent.",
+        "cost_m": 1.7,
+        "price_millions_usd": 1.7
+      },
+      {
+        "id": "frames_skirt_2",
+        "name": "V3 stress frame",
+        "tier": "Starship V3",
+        "description": "Large-area structural skirt for extremely heavy payloads and long burns.",
+        "cost_m": 2.5,
+        "price_millions_usd": 2.5
+      }
+    ]
+  },
+  {
+    "category_id": "fairings",
+    "category_name": "Fairing / payload shroud",
+    "description": "Thermal protection around the payload and upper stage.",
+    "options": [
+      {
+        "id": "fairings_0",
+        "name": "Composite fairing",
+        "tier": "SLS Block 1",
+        "description": "Lower-cost protective shell with moderate thermal margin.",
+        "cost_m": 1.8,
+        "price_millions_usd": 1.8
+      },
+      {
+        "id": "fairings_1",
+        "name": "Carbon shell",
+        "tier": "SLS Block 1B / 2",
+        "description": "Taller, stiffer fairing to preserve drag during ascent.",
+        "cost_m": 2.9,
+        "price_millions_usd": 2.9
+      },
+      {
+        "id": "fairings_2",
+        "name": "Starship large bay",
+        "tier": "Starship V3",
+        "description": "Very large payload shroud for cargo and deep-space missions.",
+        "cost_m": 4.1,
+        "price_millions_usd": 4.1
+      }
+    ]
+  },
+  {
+    "category_id": "control_fins",
+    "category_name": "Control fins",
+    "description": "Aerodynamic control surfaces and pitch authority.",
+    "options": [
+      {
+        "id": "control_fins_0",
+        "name": "Split rudder",
+        "tier": "SLS Block 1",
+        "description": "Modest fins for steady control at lower dynamic pressure.",
+        "cost_m": 1.2,
+        "price_millions_usd": 1.2
+      },
+      {
+        "id": "control_fins_1",
+        "name": "Canted boost fins",
+        "tier": "SLS Block 1B / 2",
+        "description": "Larger fins with improved turning authority and center-pressure control.",
+        "cost_m": 2.0,
+        "price_millions_usd": 2.0
+      },
+      {
+        "id": "control_fins_2",
+        "name": "Aero vector fins",
+        "tier": "Starship V3",
+        "description": "Large control surfaces with high roll damping and active pitch correction.",
+        "cost_m": 3.3,
+        "price_millions_usd": 3.3
+      }
+    ]
+  },
+  {
+    "category_id": "upper_stage",
+    "category_name": "Upper stage",
+    "description": "Secondary propulsion stage and upper-body support structure.",
+    "options": [
+      {
+        "id": "upper_stage_0",
+        "name": "Storable upper stage",
+        "tier": "SLS Block 1",
+        "description": "Small upper stage for orbital insertion and limited payload margin.",
+        "cost_m": 3.2,
+        "price_millions_usd": 3.2
+      },
+      {
+        "id": "upper_stage_1",
+        "name": "Cryo upper stage",
+        "tier": "SLS Block 1B / 2",
+        "description": "Higher propellant capacity and stronger deep-space capability.",
+        "cost_m": 5.1,
+        "price_millions_usd": 5.1
+      },
+      {
+        "id": "upper_stage_2",
+        "name": "High-Isp vacuum stage",
+        "tier": "Starship V3",
+        "description": "Large upper stage optimized for interplanetary delta-v and efficient in-space burns.",
+        "cost_m": 7.4,
+        "price_millions_usd": 7.4
+      }
+    ]
+  },
+  {
+    "category_id": "upper_stage_engine",
+    "category_name": "Upper stage engine",
+    "description": "Vacuum-optimized propulsion unit for the upper stage.",
+    "options": [
+      {
+        "id": "upper_stage_engine_0",
+        "name": "RL-10 derivative",
+        "tier": "SLS Block 1",
+        "description": "Efficient hydrogen engine with moderate thrust and long burn times.",
+        "cost_m": 2.8,
+        "price_millions_usd": 2.8
+      },
+      {
+        "id": "upper_stage_engine_1",
+        "name": "Aero-optimised vacuum motor",
+        "tier": "SLS Block 1B / 2",
+        "description": "High-thrust vacuum engine with better startup margin and deep-space profile.",
+        "cost_m": 4.2,
+        "price_millions_usd": 4.2
+      },
+      {
+        "id": "upper_stage_engine_2",
+        "name": "Raptor-class vacuum engine",
+        "tier": "Starship V3",
+        "description": "Very high-thrust methane/oxygen engine optimized for vacuum efficiency.",
+        "cost_m": 5.8,
+        "price_millions_usd": 5.8
+      }
+    ]
+  },
+  {
+    "category_id": "core_structure",
+    "category_name": "Core structure / fuselage",
+    "description": "Main tank support, skin, and stage body shell.",
+    "options": [
+      {
+        "id": "core_structure_0",
+        "name": "Thin-shell LWT core",
+        "tier": "SLS Block 1",
+        "description": "Relatively light central barrel for a conventional launch profile.",
+        "cost_m": 2.7,
+        "price_millions_usd": 2.7
+      },
+      {
+        "id": "core_structure_1",
+        "name": "Composite barrel",
+        "tier": "SLS Block 1B / 2",
+        "description": "Larger and stiffer stage shell for higher launch load and improved thermal margin.",
+        "cost_m": 4.1,
+        "price_millions_usd": 4.1
+      },
+      {
+        "id": "core_structure_2",
+        "name": "Full stainless barrel",
+        "tier": "Starship V3",
+        "description": "Very large monocoque structure with high pressure and thermal headroom.",
+        "cost_m": 5.9,
+        "price_millions_usd": 5.9
+      }
+    ]
+  },
+  {
+    "category_id": "propellant_tanks",
+    "category_name": "Propellant tanks",
+    "description": "Main oxidizer and fuel hold for the stage.",
+    "options": [
+      {
+        "id": "propellant_tanks_0",
+        "name": "Standard cylindrical tanks",
+        "tier": "SLS Block 1",
+        "description": "A moderate-capacity tank set for conventional ground-to-orbit ascent.",
+        "cost_m": 2.6,
+        "price_millions_usd": 2.6
+      },
+      {
+        "id": "propellant_tanks_1",
+        "name": "Extended tank dome",
+        "tier": "SLS Block 1B / 2",
+        "description": "Larger tank volume and stronger load paths for longer ascent burns.",
+        "cost_m": 4.0,
+        "price_millions_usd": 4.0
+      },
+      {
+        "id": "propellant_tanks_2",
+        "name": "Starship tank stack",
+        "tier": "Starship V3",
+        "description": "High-volume tank set for maximum deep-space range and methane/oxygen flexibility.",
+        "cost_m": 6.5,
+        "price_millions_usd": 6.5
+      }
+    ]
+  },
+  {
+    "category_id": "main_engines",
+    "category_name": "Main engines (core)",
+    "description": "Clustered sea-level and vacuum propulsion for the main stack.",
+    "options": [
+      {
+        "id": "main_engines_0",
+        "name": "RS-25 class cluster",
+        "tier": "SLS Block 1",
+        "description": "Four methane/rp1-class engines with medium vacuum efficiency.",
+        "cost_m": 5.1,
+        "price_millions_usd": 5.1
+      },
+      {
+        "id": "main_engines_1",
+        "name": "Advanced booster cluster",
+        "tier": "SLS Block 1B / 2",
+        "description": "Higher thrust and better chamber pressure for larger stage loads.",
+        "cost_m": 7.1,
+        "price_millions_usd": 7.1
+      },
+      {
+        "id": "main_engines_2",
+        "name": "Raptor booster cluster",
+        "tier": "Starship V3",
+        "description": "High-thrust methane/oxygen cluster with strong vacuum performance and rapid burn-through to orbit.",
+        "cost_m": 9.7,
+        "price_millions_usd": 9.7
+      }
+    ]
+  },
+  {
+    "category_id": "side_boosters",
+    "category_name": "Side boosters / strap-ons",
+    "description": "Solid or liquid boosters flanking the main core.",
+    "options": [
+      {
+        "id": "side_boosters_0",
+        "name": "Two solid boosters",
+        "tier": "SLS Block 1",
+        "description": "Reliable strap-on boosters with conservative load path and moderate plume profile.",
+        "cost_m": 3.4,
+        "price_millions_usd": 3.4
+      },
+      {
+        "id": "side_boosters_1",
+        "name": "Extended liquid boosters",
+        "tier": "SLS Block 1B / 2",
+        "description": "Longer boosters with more propellant and more useful early boost.",
+        "cost_m": 5.4,
+        "price_millions_usd": 5.4
+      },
+      {
+        "id": "side_boosters_2",
+        "name": "No boosters / all-core",
+        "tier": "Starship V3",
+        "description": "Full-core architecture without side boosters to minimize drag and simplify staging.",
+        "cost_m": 0.0,
+        "price_millions_usd": 0.0
+      }
+    ]
+  },
+  {
+    "category_id": "gimbal_system",
+    "category_name": "Gimbal / vector control",
+    "description": "Thrust vector control and steering authority.",
+    "options": [
+      {
+        "id": "gimbal_system_0",
+        "name": "Single-axis gimbal",
+        "tier": "SLS Block 1",
+        "description": "Basic vector control with conservative turning authority.",
+        "cost_m": 1.1,
+        "price_millions_usd": 1.1
+      },
+      {
+        "id": "gimbal_system_1",
+        "name": "Dual-axis TVC",
+        "tier": "SLS Block 1B / 2",
+        "description": "Improved steering authority and more stable ascent during transonic flight.",
+        "cost_m": 1.9,
+        "price_millions_usd": 1.9
+      },
+      {
+        "id": "gimbal_system_2",
+        "name": "Advanced active TVC",
+        "tier": "Starship V3",
+        "description": "High authority thruster steering for aggressive pitch and altitude profiles.",
+        "cost_m": 2.8,
+        "price_millions_usd": 2.8
+      }
+    ]
+  },
+  {
+    "category_id": "thermal_protection",
+    "category_name": "Thermal protection",
+    "description": "Heat shield and nose ablative insulation.",
+    "options": [
+      {
+        "id": "thermal_protection_0",
+        "name": "Steel heat tiles",
+        "tier": "SLS Block 1",
+        "description": "Conventional high-temperature tiles for launch and reentry loads.",
+        "cost_m": 1.3,
+        "price_millions_usd": 1.3
+      },
+      {
+        "id": "thermal_protection_1",
+        "name": "Ceramic matrix shell",
+        "tier": "SLS Block 1B / 2",
+        "description": "Higher tolerance to repeated losses and stronger aerodynamic heating exposure.",
+        "cost_m": 2.2,
+        "price_millions_usd": 2.2
+      },
+      {
+        "id": "thermal_protection_2",
+        "name": "Ablative star shield",
+        "tier": "Starship V3",
+        "description": "High-capacity thermal blanket for interplanetary atmospheric entry and long stagnation heating.",
+        "cost_m": 3.5,
+        "price_millions_usd": 3.5
+      }
+    ]
+  },
+  {
+    "category_id": "separation_system",
+    "category_name": "Separation / staging",
+    "description": "Separation system, explosive bolts, and stage release logic.",
+    "options": [
+      {
+        "id": "separation_system_0",
+        "name": "Bolt ring",
+        "tier": "SLS Block 1",
+        "description": "Conservative separation system with simple pyrotechnic release assembly.",
+        "cost_m": 0.9,
+        "price_millions_usd": 0.9
+      },
+      {
+        "id": "separation_system_1",
+        "name": "Linear separation rails",
+        "tier": "SLS Block 1B / 2",
+        "description": "Higher-performance separation rails with improved structural retention.",
+        "cost_m": 1.6,
+        "price_millions_usd": 1.6
+      },
+      {
+        "id": "separation_system_2",
+        "name": "Active stage release",
+        "tier": "Starship V3",
+        "description": "High-speed, low-drift separation with active timing and load balancing.",
+        "cost_m": 2.7,
+        "price_millions_usd": 2.7
+      }
+    ]
+  },
+  {
+    "category_id": "parachute_recovery",
+    "category_name": "Parachute / recovery",
+    "description": "Recovery and descent control after stage separation or payload return.",
+    "options": [
+      {
+        "id": "parachute_recovery_0",
+        "name": "Standard canopy",
+        "tier": "SLS Block 1",
+        "description": "Simple drogue and main canopy for stable low-rate recovery.",
+        "cost_m": 0.7,
+        "price_millions_usd": 0.7
+      },
+      {
+        "id": "parachute_recovery_1",
+        "name": "High-altitude recovery",
+        "tier": "SLS Block 1B / 2",
+        "description": "Higher-capacity recovery system for stage and payload returns.",
+        "cost_m": 1.4,
+        "price_millions_usd": 1.4
+      },
+      {
+        "id": "parachute_recovery_2",
+        "name": "Precision landing kit",
+        "tier": "Starship V3",
+        "description": "High-performance descent control and landing resilience for return missions.",
+        "cost_m": 2.4,
+        "price_millions_usd": 2.4
+      }
+    ]
+  }
+]

@@ -43,6 +43,9 @@ signal failed(message: String)
 const EARTH_LAUNCH_INITIAL_VELOCITY_BOOST_MPS: float = 8.0
 const EARTH_LAUNCH_ACCELERATION_BOOST_MPS2: float = 1.5
 const EARTH_LAUNCH_ACCELERATION_DECAY_SECONDS: float = 3.0
+const EARTH_LAUNCH_ORBIT_SURGE_START_SECONDS: float = 20.0
+const EARTH_LAUNCH_ORBIT_SURGE_VELOCITY_MPS: float = 420.0
+const EARTH_LAUNCH_ORBIT_SURGE_POSITION_M: float = 300.0
 
 ## Seconds of flight played back so far.
 var sim_time: float = 0.0
@@ -136,11 +139,11 @@ func get_state() -> Dictionary:
 		var velocity_ramp: float = decay * (1.0 - exp(-elapsed / decay))
 		var launch_axis: Vector3 = _axes[0].normalized()
 
-		# Strong exponential kick after T+22s to create a visible late-stage surge.
-		var surge_elapsed: float = maxf(elapsed - 22.0, 0.0)
-		var surge_factor: float = exp(surge_elapsed / 4.0)
-		var surge_extra_velocity: float = 90.0 * (surge_factor - 1.0)
-		var surge_extra_position: float = 130.0 * (surge_factor - 1.0) * (surge_elapsed + 1.0)
+		# Strong exponential kick after T+20s to create a much more visible late-stage surge.
+		var surge_elapsed: float = maxf(elapsed - EARTH_LAUNCH_ORBIT_SURGE_START_SECONDS, 0.0)
+		var surge_factor: float = exp(surge_elapsed / 3.0)
+		var surge_extra_velocity: float = EARTH_LAUNCH_ORBIT_SURGE_VELOCITY_MPS * (surge_factor - 1.0)
+		var surge_extra_position: float = EARTH_LAUNCH_ORBIT_SURGE_POSITION_M * (surge_factor - 1.0) * (surge_elapsed + 1.0)
 
 		position += launch_axis * (
 			EARTH_LAUNCH_INITIAL_VELOCITY_BOOST_MPS * elapsed

@@ -73,8 +73,9 @@ func build(design_length: float, build_data: Dictionary = {}) -> void:
 	_model.add_child(_lower)
 
 	var orange := _material(core_color, 0.8)
-	var white := _material(white_color, 0.45)
-	var dark := _material(dark_color, 0.6)
+	var white := _material(white_color, 0.35, 0.15)
+	var dark := _material(dark_color, 0.5, 0.5)
+	var steel := _material(Color(0.62, 0.64, 0.68), 0.3, 0.8)
 	var l: float = length
 	var core_r: float = 0.043 * l * _body_radius_scale
 	var upper_r: float = 0.026 * l * _body_radius_scale
@@ -85,10 +86,16 @@ func build(design_length: float, build_data: Dictionary = {}) -> void:
 	# Core stage, tapered adapter, upper stage, service module, capsule, abort tower.
 	_section_parent = _lower
 	_section(0.03 * l, 0.66 * l, core_r, core_r, orange)
+	_band(0.06 * l, 0.012 * l, core_r * 1.02, dark)
+	_band(0.35 * l, 0.006 * l, core_r * 1.02, dark)
+	_band(0.64 * l, 0.012 * l, core_r * 1.02, dark)
 	_section(0.66 * l, 0.73 * l, core_r, upper_r, orange)
 	_section_parent = _model
 	_section(0.73 * l, 0.85 * l, upper_r, upper_r, white)
-	_section(0.85 * l, 0.89 * l, upper_r, 0.012 * l, white)
+	_section(0.85 * l, 0.87 * l, upper_r, 0.018 * l, white)
+	_section(0.87 * l, 0.89 * l, 0.018 * l, 0.012 * l, white)
+	_band(0.80 * l, 0.012 * l, upper_r * 1.03, dark) # window band
+	_band(0.735 * l, 0.01 * l, upper_r * 1.04, steel) # interstage ring
 	if _escape_tower_visible:
 		_section(0.89 * l, 0.97 * l, 0.006 * l, 0.006 * l, white)
 		_section(0.97 * l, 1.0 * l, 0.006 * l, 0.0, white)
@@ -105,6 +112,8 @@ func build(design_length: float, build_data: Dictionary = {}) -> void:
 		_section(-0.03 * l, 0.0, 0.021 * l, 0.012 * l, dark, at)
 		_section(0.0, 0.04 * l, 0.026 * l, booster_r, white, at)
 		_section(0.04 * l, 0.52 * l, booster_r, booster_r, white, at)
+		_band(0.30 * l, 0.01 * l, booster_r * 1.03, dark, at)
+		_band(0.45 * l, 0.01 * l, booster_r * 1.03, dark, at)
 		_section(0.52 * l, 0.575 * l, booster_r, 0.0, white, at)
 
 	_build_exhaust(core_r, booster_r, booster_x)
@@ -131,11 +140,18 @@ func set_sunlit(lit: bool) -> void:
 		(node as MeshInstance3D).layers = 1 if lit else 2
 
 
-func _material(color: Color, roughness: float) -> StandardMaterial3D:
+func _material(color: Color, roughness: float, metallic: float = 0.0) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.roughness = roughness
+	mat.metallic = metallic
+	mat.metallic_specular = 0.6
 	return mat
+
+
+## A thin band slightly wider than the body, for interstage rings, stripes and seams.
+func _band(y: float, height: float, radius: float, mat: Material, at: Vector2 = Vector2.ZERO) -> void:
+	_section(y - height * 0.5, y + height * 0.5, radius, radius, mat, at)
 
 
 ## One round section of the vehicle between two heights, optionally off the centre line.
@@ -327,7 +343,7 @@ func deploy_parachute() -> void:
 
 ## Turn the model into the lunar lander: only the upper stage and capsule remain, the node
 ## origin moves to the upper stage's base, one engine is left, and four folded legs are added.
-func make_lander() -> void:
+func make_lander(kind: String = "moon") -> void:
 	if _lower != null:
 		_lower.queue_free()
 		_lower = null
@@ -375,7 +391,77 @@ func make_lander() -> void:
 		pad.rotation.z = LEG_DEPLOY_ANGLE # level with the ground once the leg is down
 		hinge.add_child(pad)
 		_leg_hinges.append(hinge)
+	_dress_lander(kind, base, _upper_r)
 	lander_ground_offset = leg_length * cos(PI - LEG_DEPLOY_ANGLE) - pivot_height
+
+
+## Moon: a gold-foil descent stage with silver tanks. Mars: a dusty dark skirt, four rust-red
+## propellant spheres and an antenna mast.
+func _dress_lander(kind: String, base: float, r: float) -> void:
+	var l: float = length
+	_section_parent = _model
+	if kind == "mars":
+		var rust := _material(Color(0.62, 0.30, 0.18), 0.9)
+		var shell := _material(Color(0.20, 0.17, 0.15), 0.8, 0.2)
+		_section(base - 0.01 * l, base + 0.03 * l, r * 1.9, r * 1.15, shell)
+		for i in 4:
+			var a: float = i * PI / 2.0
+			_sphere(Vector3(cos(a), 0.0, sin(a)) * r * 1.5 + Vector3.UP * (base + 0.045 * l), 0.012 * l, rust)
+		_section(base + 0.12 * l, base + 0.17 * l, 0.0015 * l, 0.0015 * l, _material(dark_color, 0.5, 0.6),
+				Vector2(r * 0.7, 0.0))
+	else:
+		var gold := _material(Color(0.86, 0.66, 0.2), 0.25, 0.9)
+		var silver := _material(Color(0.78, 0.8, 0.84), 0.3, 0.8)
+		_section(base - 0.015 * l, base + 0.03 * l, r * 1.7, r * 1.7, gold)
+		_section(base + 0.03 * l, base + 0.045 * l, r * 1.7, r * 1.05, gold)
+		for i in 4:
+			var a: float = PI / 4.0 + i * PI / 2.0
+			_sphere(Vector3(cos(a), 0.0, sin(a)) * r * 1.9 + Vector3.UP * (base + 0.008 * l), 0.008 * l, silver)
+
+
+func _sphere(at: Vector3, radius: float, mat: Material) -> void:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.material = mat
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.position = at
+	_model.add_child(node)
+
+
+## The transit look: boosters and abort tower gone, gold-foil wrap, two solar wings and a
+## dish, as a spacecraft coasting between worlds.
+func make_cruiser() -> void:
+	var l: float = length
+	for child in _lower.get_children():
+		if child is MeshInstance3D and absf((child as MeshInstance3D).position.z) > 0.04 * l:
+			child.queue_free() # the side boosters sit off the centre line, on Z
+	while _flames.size() > 1:
+		_flames.pop_back().queue_free()
+	var gold := _material(Color(0.86, 0.66, 0.2), 0.25, 0.9)
+	var panel := _material(Color(0.08, 0.14, 0.38), 0.25, 0.7)
+	var frame := _material(Color(0.7, 0.72, 0.76), 0.3, 0.8)
+	_section_parent = _model
+	_section(0.73 * l, 0.80 * l, _upper_r * 1.06, _upper_r * 1.06, gold)
+	for side: float in [-1.0, 1.0]:
+		var box := BoxMesh.new()
+		box.size = Vector3(0.14 * l, 0.004 * l, 0.07 * l)
+		box.material = panel
+		var wing := MeshInstance3D.new()
+		wing.mesh = box
+		wing.position = Vector3(0.0, 0.775 * l, side * (_upper_r + 0.04 * l))
+		_model.add_child(wing)
+	var dish_mesh := CylinderMesh.new()
+	dish_mesh.top_radius = 0.02 * l
+	dish_mesh.bottom_radius = 0.004 * l
+	dish_mesh.height = 0.008 * l
+	dish_mesh.material = frame
+	var dish := MeshInstance3D.new()
+	dish.mesh = dish_mesh
+	dish.position = Vector3(_upper_r + 0.012 * l, 0.84 * l, 0.0)
+	dish.rotation.z = -0.9
+	_model.add_child(dish)
 
 
 const LEG_DEPLOY_ANGLE := deg_to_rad(140.0)
