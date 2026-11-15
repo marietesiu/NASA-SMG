@@ -17,8 +17,8 @@ uniform vec3 night_tint : source_color = vec3(1.0, 0.8, 0.45);
 void fragment() {
 	ALBEDO = texture(day_tex, UV).rgb;
 	float ocean = 1.0 - texture(land_mask_tex, UV).r;
-	ROUGHNESS = mix(0.85, 0.3, ocean);
-	SPECULAR = mix(0.25, 0.6, ocean);
+	ROUGHNESS = mix(0.85, 0.42, ocean);
+	SPECULAR = mix(0.25, 0.45, ocean);
 	NORMAL_MAP = texture(normal_tex, UV).rgb;
 	NORMAL_MAP_DEPTH = normal_strength;
 

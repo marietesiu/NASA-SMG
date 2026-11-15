@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import json
+import math
 import os
 import signal
 import subprocess
 import sys
+import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(PROJECT_ROOT, "frontend")
@@ -16,6 +18,8 @@ CATALOG_PATH = os.path.join(PROJECT_ROOT, "catalog.json")
 MISSION_CONFIG_PATH = os.path.join(PROJECT_ROOT, "mission_config.json")
 PORT = int(os.environ.get("PORT", "8080"))
 BASE_BUDGET_M = 54.8
+TRANSIT_LOCK = threading.Lock()
+TRANSIT_SESSION = None
 
 
 def load_catalog():
@@ -128,6 +132,27 @@ class LauncherHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
 
+        if path == "/api/transit/state":
+            with TRANSIT_LOCK:
+                session = dict(TRANSIT_SESSION) if TRANSIT_SESSION else None
+            requested_id = parse_qs(parsed.query).get("session_id", [""])[0]
+            if session and requested_id and session.get("session_id") != requested_id:
+                session = None
+            self.send_json({"ok": True, "session": session})
+            return
+
+        if path == "/api/transit/answer":
+            requested_id = parse_qs(parsed.query).get("session_id", [""])[0]
+            with TRANSIT_LOCK:
+                session = TRANSIT_SESSION
+                answer = None
+                if session and session.get("session_id") == requested_id:
+                    answer = session.get("answer")
+                    if answer is not None:
+                        session["answer"] = None
+            self.send_json({"ok": True, "answer": answer})
+            return
+
         if path == "/api/catalog":
             self.send_json(load_catalog())
             return
@@ -176,21 +201,32 @@ class LauncherHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
-        if parsed.path != "/api/launch":
-            self.send_error(404, "Not found")
-            return
-
         try:
             content_length = int(self.headers.get("Content-Length", "0"))
             body = self.rfile.read(content_length)
             if not body:
                 raise ValueError("Request body is empty.")
             payload = json.loads(body.decode("utf-8"))
+
+            if parsed.path == "/api/transit/start":
+                self._start_transit_session(payload)
+                return
+            if parsed.path == "/api/transit/answer":
+                self._submit_transit_answer(payload)
+                return
+            if parsed.path == "/api/transit/result":
+                self._record_transit_result(payload)
+                return
+            if parsed.path != "/api/launch":
+                self.send_error(404, "Not found")
+                return
+
             catalog = load_catalog()
             _, mission, budget_limit = validate_payload(payload, catalog)
             payload["target_altitude_km"] = float(mission["target_altitude_km"])
             payload["target_inclination_deg"] = float(mission["target_inclination_deg"])
             payload["budget_limit_m"] = budget_limit
+            payload["transit_api_url"] = f"http://127.0.0.1:{PORT}/api"
             if payload.get("mission_id") == "delivering_to_mars":
                 payload["cargo_mass_kg"] = 200.0
                 payload["radioactive_material"] = True
@@ -198,6 +234,10 @@ class LauncherHandler(SimpleHTTPRequestHandler):
 
             if process_running_for_project(PROJECT_ROOT):
                 raise RuntimeError("A Godot mission is already running from this project root.")
+
+            global TRANSIT_SESSION
+            with TRANSIT_LOCK:
+                TRANSIT_SESSION = None
 
             with open(MISSION_CONFIG_PATH, "w", encoding="utf-8") as handle:
                 json.dump(payload, handle, indent=2, ensure_ascii=False)
@@ -209,6 +249,67 @@ class LauncherHandler(SimpleHTTPRequestHandler):
             self.send_json({"ok": True, "config_path": "mission_config.json"})
         except Exception as exc:  # pragma: no cover - HTTP error path
             self.send_json({"ok": False, "error": str(exc)}, status=400)
+
+    def _start_transit_session(self, payload):
+        global TRANSIT_SESSION
+        mission_id = payload.get("mission_id")
+        difficulty = payload.get("difficulty")
+        if mission_id not in {"to_the_moon", "delivering_to_mars"}:
+            raise ValueError("Transit challenge requires a Moon or Mars mission.")
+        if difficulty not in {"easy", "normal"}:
+            raise ValueError("The transit equation is only available on Easy or Normal.")
+        session_id = str(payload.get("session_id", ""))
+        if not session_id or len(session_id) > 80:
+            raise ValueError("A valid transit session ID is required.")
+        numbers = ("a", "b", "c", "target_x_km", "tolerance_km")
+        for key in numbers:
+            value = payload.get(key)
+            if not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError(f"Transit value '{key}' must be a finite number.")
+        if payload["target_x_km"] <= 0 or payload["tolerance_km"] <= 0:
+            raise ValueError("Transit distance and tolerance must be positive.")
+
+        session = {
+            **{key: payload[key] for key in numbers},
+            "session_id": session_id,
+            "mission_id": mission_id,
+            "destination": "Moon" if mission_id == "to_the_moon" else "Mars",
+            "difficulty": difficulty,
+            "status": "ready",
+            "answer": None,
+            "feedback": "",
+        }
+        with TRANSIT_LOCK:
+            TRANSIT_SESSION = session
+        self.send_json({"ok": True, "session_id": session_id})
+
+    def _submit_transit_answer(self, payload):
+        session_id = str(payload.get("session_id", ""))
+        angle = payload.get("angle_deg")
+        if not isinstance(angle, (int, float)) or not math.isfinite(angle) or not -89.0 < angle < 89.0:
+            raise ValueError("Angle must be a finite value between -89 and 89 degrees.")
+        with TRANSIT_LOCK:
+            if not TRANSIT_SESSION or TRANSIT_SESSION.get("session_id") != session_id:
+                raise ValueError("Transit session was not found or has expired.")
+            if TRANSIT_SESSION.get("status") not in {"ready", "missed"}:
+                raise ValueError("This transit session is not accepting an answer yet.")
+            TRANSIT_SESSION["answer"] = float(angle)
+            TRANSIT_SESSION["status"] = "answer_received"
+            TRANSIT_SESSION["feedback"] = "Angle received. Simulating the relative trajectory..."
+        self.send_json({"ok": True})
+
+    def _record_transit_result(self, payload):
+        session_id = str(payload.get("session_id", ""))
+        hit = payload.get("hit")
+        if not isinstance(hit, bool):
+            raise ValueError("Transit result must include a boolean hit value.")
+        with TRANSIT_LOCK:
+            if not TRANSIT_SESSION or TRANSIT_SESSION.get("session_id") != session_id:
+                raise ValueError("Transit session was not found or has expired.")
+            TRANSIT_SESSION["status"] = "hit" if hit else "missed"
+            TRANSIT_SESSION["feedback"] = str(payload.get("feedback", ""))[:400]
+            TRANSIT_SESSION["answer"] = None
+        self.send_json({"ok": True})
 
     def send_json(self, payload, status=200):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")

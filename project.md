@@ -128,7 +128,19 @@ Limitación conocida: la órbita es siempre la misma (400 km circular); no depen
 
 ### 4.5 Lanzador web — `frontend/`
 
-`python3 server.py` sirve el constructor local y el PWA exportado por Godot en `/godot`. La exportación conserva sus recursos y cabeceras COOP/COEP (`crossOriginIsolated` y `SharedArrayBuffer`). El constructor envía `POST /api/launch`; el servidor valida misión, dificultad, catálogo y presupuesto, guarda `mission_config.json` y lanza Godot nativo. El proceso nativo es necesario porque el navegador no puede iniciar Java ni `GmatConsole`.
+`python3 server.py` sirve el constructor local y el PWA exportado por Godot en `/godot`. La exportación conserva sus recursos y cabeceras COOP/COEP (`crossOriginIsolated` y `SharedArrayBuffer`). El constructor envía `POST /api/launch`; el servidor valida misión, dificultad, catálogo y presupuesto, guarda `mission_config.json` y lanza Godot nativo. El proceso nativo sigue siendo necesario para iniciar Java y `GmatConsole`.
+
+En el tránsito a la Luna o Marte, Easy y Normal generan una ecuación de destino distinta en cada partida. Godot crea la sesión con `POST /api/transit/start`; el navegador obtiene los coeficientes con `GET /api/transit/state`, envía `angle_deg` a `POST /api/transit/answer` y Godot consulta `GET /api/transit/answer`. `POST /api/transit/result` publica el impacto o el error para mostrarlo en la web. Hard y Extreme no muestran el ejercicio.
+
+### Exportar el reto a Web
+
+1. Instala la plantilla de exportación correspondiente a Godot 4.7.2 y abre **Project > Export**.
+2. Usa el preset `Web`. Su salida `../../../index.html` queda en la carpeta que el servidor publica como `/godot/` (`GODOT_WEB_DIR` puede cambiar esa carpeta).
+3. Conserva activada la opción **Ensure Cross Origin Isolation** para que se envíen las cabeceras COOP/COEP requeridas por el PWA.
+4. Sirve la salida mediante `python3 server.py`; no abras `index.html` con `file://`. La exportación debe estar bajo el mismo origen HTTP que la interfaz para que funcione el intercambio con el host.
+5. Si el juego Web se integra en una página host mediante un `iframe` de `/godot/`, `transit.gd` anuncia `transit-start` con `JavaScriptBridge` y el host responde con `transit-answer` usando `postMessage`. El lanzamiento de escritorio usa la API local anterior y no requiere `JavaScriptBridge`.
+
+El origen es el cohete `(0, 0)`. El ejercicio usa `y = tan(θ) · x` para el cohete y `y = ax² + bx + c` para el desplazamiento relativo del destino; el cohete vuela con el ángulo recibido y puede reintentarse si pasa fuera del radio del cuerpo.
 
 La órbita GMAT recibe altitud e inclinación de la misión terrestre. Las misiones lunar y marciana se mantienen visibles en el catálogo, pero no se pueden lanzar hasta implementar propagación de transferencia; no se convierten silenciosamente en una órbita terrestre de 400 km.
 

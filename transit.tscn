@@ -33,7 +33,7 @@ script = ExtResource("1_transit")
 environment = SubResource("Env_res")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
-light_energy = 2.2
+light_energy = 1.5
 shadow_enabled = true
 directional_shadow_max_distance = 600.0
 
@@ -54,4 +54,4 @@ script = ExtResource("3_rocket")
 current = true
 fov = 70.0
 near = 1.0
-far = 1000000.0
+far = 10000000.0

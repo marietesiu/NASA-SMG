@@ -21,11 +21,15 @@ const LAYERS: Array[Dictionary] = [
 		"sky_top": Color(0.0, 0.0, 0.02), "sky_horizon": Color(0.02, 0.03, 0.1), "stars": 1.0},
 ]
 
-## Missions that end on another world, and the scene that lands there.
+## Missions that end on another world, and the scene that lands there. transit.gd keeps the
+## same pairing for the scene it opens when the intermission ends.
 const LANDING_SCENES := {
 	"to_the_moon": "res://moon_landing.tscn",
 	"delivering_to_mars": "res://mars_landing.tscn",
 }
+## The intermission between the Earth ascent and the landing: six seconds of the rocket
+## gliding toward the Moon or Mars, the same scene for both.
+const TRANSIT_SCENE := "res://transit.tscn"
 
 ## Scene metres per real metre of the OpenRocket trajectory. Below 1 the world is
 ## compressed, so the rocket crosses fewer of its own lengths per second.
@@ -214,8 +218,9 @@ func _process_ascent(delta: float) -> void:
 				if _sim.vehicle_failed:
 					_status.text = _sim.vehicle_failure_reason
 				elif LANDING_SCENES.has(_read_mission_config().get("mission_id", "")):
-					# The coast from the edge of the atmosphere to the Moon or Mars is skipped.
-					get_tree().change_scene_to_file(LANDING_SCENES[_read_mission_config().mission_id])
+					# The coast to the Moon or Mars is a six-second intermission; the
+					# transit scene then opens the landing scene for the mission.
+					get_tree().change_scene_to_file(TRANSIT_SCENE)
 				elif _orbit.is_ready:
 					_enter_orbit()
 				elif not _orbit_error.is_empty():

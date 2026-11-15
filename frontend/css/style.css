@@ -280,12 +280,33 @@ input[type="range"] { accent-color: var(--primary); }
   display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid rgba(108, 227, 255, 0.38); background: rgba(10, 28, 38, 0.72); color: var(--primary); padding: 0.45rem 0.8rem; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.7rem; font-weight: 700;
 }
 
+.transit-panel { max-width: 860px; margin: 0 auto; padding: clamp(20px, 4vw, 36px); }
+.transit-panel .panel-header { margin-bottom: 12px; }
+.transit-panel h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); }
+.transit-destination { color: var(--amber); font-weight: 700; }
+.transit-lead, .transit-range { color: var(--muted); line-height: 1.6; }
+.transit-equations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 22px 0 16px; }
+.transit-equation { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: rgba(5, 15, 23, 0.78); }
+.transit-equation span { display: block; margin-bottom: 9px; color: var(--muted); font-size: 0.85rem; }
+.transit-equation code { color: var(--primary); font: 600 1rem/1.5 ui-monospace, "Cascadia Code", monospace; overflow-wrap: anywhere; }
+.transit-form { display: grid; gap: 10px; margin-top: 20px; }
+.transit-form label { color: var(--muted); font-weight: 600; }
+.transit-input-row { display: grid; grid-template-columns: minmax(100px, 1fr) auto auto; align-items: center; gap: 12px; }
+.transit-input-row input { min-width: 0; height: 48px; padding: 0.7rem 0.8rem; border: 1px solid var(--line); border-radius: 10px; background: rgba(6, 18, 27, 0.9); color: var(--text); }
+.transit-input-row > span { color: var(--muted); }
+.transit-input-row .primary-button { white-space: nowrap; }
+.transit-feedback { min-height: 1.5em; margin: 18px 0 10px; color: var(--green); line-height: 1.5; }
+[hidden] { display: none !important; }
+
 @media (max-width: 860px) {
   .hero-panel, .builder-layout { grid-template-columns: 1fr; }
   .intercept-layout { grid-template-columns: 1fr; }
   .topbar { flex-direction: column; align-items: flex-start; }
   .button-row { flex-direction: column; }
   .button-row button { width: 100%; }
+  .transit-equations { grid-template-columns: 1fr; }
+  .transit-input-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .transit-input-row .primary-button { grid-column: 1 / -1; }
 }
 
 @media (max-width: 560px) {

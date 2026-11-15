@@ -119,7 +119,7 @@ func _build_mars() -> void:
 	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	_add_mesh(_surface, _model_mesh(MODELS[Kind.MARS]), material, radius)
 	# Mars' air is thin: a faint dusty haze, much weaker than the Earth's.
-	_add_haze(Color(0.95, 0.6, 0.4), 0.45, 1.035)
+	_add_haze(Color(0.95, 0.6, 0.4), 0.22, 1.035)
 
 
 func _texture(file: String) -> Texture2D:

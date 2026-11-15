@@ -40,6 +40,9 @@ signal failed(message: String)
 @export var playback_duration: float = 0.0
 ## Playback speed used until OpenRocket has finished and the flight's length is known.
 @export var provisional_playback_speed: float = 8.0
+const EARTH_LAUNCH_INITIAL_VELOCITY_BOOST_MPS: float = 8.0
+const EARTH_LAUNCH_ACCELERATION_BOOST_MPS2: float = 1.5
+const EARTH_LAUNCH_ACCELERATION_DECAY_SECONDS: float = 3.0
 
 ## Seconds of flight played back so far.
 var sim_time: float = 0.0
@@ -126,6 +129,20 @@ func get_state() -> Dictionary:
 	var position: Vector3 = _positions[a].lerp(_positions[b], w)
 	position = _positions[0] + (position - _positions[0]) * motion_scale
 	var velocity: Vector3 = _velocities[a].lerp(_velocities[b], w) * motion_scale
+	if motion_scale < 1.0:
+		var elapsed: float = maxf(sim_time, 0.0)
+		var decay: float = EARTH_LAUNCH_ACCELERATION_DECAY_SECONDS
+		var acceleration_ramp: float = decay * (elapsed - decay * (1.0 - exp(-elapsed / decay)))
+		var velocity_ramp: float = decay * (1.0 - exp(-elapsed / decay))
+		var launch_axis: Vector3 = _axes[0].normalized()
+		position += launch_axis * (
+			EARTH_LAUNCH_INITIAL_VELOCITY_BOOST_MPS * elapsed
+			+ EARTH_LAUNCH_ACCELERATION_BOOST_MPS2 * acceleration_ramp
+		)
+		velocity += launch_axis * (
+			EARTH_LAUNCH_INITIAL_VELOCITY_BOOST_MPS
+			+ EARTH_LAUNCH_ACCELERATION_BOOST_MPS2 * velocity_ramp
+		)
 	return {
 		"position": position,
 		"velocity": velocity,

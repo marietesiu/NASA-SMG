@@ -10,6 +10,8 @@ const DEFAULT_STATE = {
 };
 
 const state = { ...DEFAULT_STATE };
+let transitFrameSource = null;
+let transitSession = null;
 
 function showScreen(screenId) {
   document.querySelectorAll(".screen").forEach((el) => {
@@ -259,6 +261,81 @@ function updateLaunchMessage(text) {
   document.getElementById("launchMessage").textContent = text;
 }
 
+function formatTransitCoefficient(value) {
+  return Number(value).toPrecision(7);
+}
+
+function renderTransitSession(session) {
+  if (!session || !["easy", "normal"].includes(String(session.difficulty).toLowerCase())) return;
+  transitSession = session;
+  document.getElementById("transitDifficulty").textContent = session.difficulty[0].toUpperCase() + session.difficulty.slice(1);
+  document.getElementById("transitDestination").textContent = session.destination;
+  document.getElementById("transitRocketEquation").textContent = "y = tan(θ) · x";
+  document.getElementById("transitDestinationEquation").textContent =
+    `y = (${formatTransitCoefficient(session.a)})x² + (${formatTransitCoefficient(session.b)})x + (${formatTransitCoefficient(session.c)})`;
+  document.getElementById("transitTargetX").textContent = `${Number(session.target_x_km).toLocaleString(undefined, { maximumFractionDigits: 2 })} km`;
+  const form = document.getElementById("transitAnswerForm");
+  const feedback = document.getElementById("transitFeedback");
+  const accepting = session.status === "ready" || session.status === "missed";
+  form.hidden = !accepting;
+  document.getElementById("transitSubmitBtn").disabled = !accepting;
+  feedback.textContent = session.feedback || (session.status === "answer_received"
+    ? "Angle received. The rocket is flying the relative trajectory…"
+    : "Calculate the angle at the displayed destination distance." );
+  showScreen("transitScreen");
+}
+
+async function pollTransitSession() {
+  try {
+    const response = await fetch("/api/transit/state", { cache: "no-store" });
+    const result = await response.json();
+    if (response.ok && result.session) renderTransitSession(result.session);
+  } catch (_error) {
+    // The local launcher may not be running while the static page is open.
+  }
+  window.setTimeout(pollTransitSession, 500);
+}
+
+async function submitTransitAnswer(event) {
+  event.preventDefault();
+  if (!transitSession) return;
+  const angle = Number(document.getElementById("transitAngleInput").value);
+  if (!Number.isFinite(angle) || angle <= -89 || angle >= 89) return;
+  const message = {
+    type: "transit-answer",
+    session_id: transitSession.session_id,
+    angle_deg: angle
+  };
+
+  try {
+    if (transitFrameSource) {
+      transitFrameSource.postMessage(message, window.location.origin);
+    } else {
+      const response = await fetch("/api/transit/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(message)
+      });
+      const result = await response.json();
+      if (!response.ok || result.ok === false) throw new Error(result.error || "The angle could not be sent.");
+    }
+    renderTransitSession({ ...transitSession, status: "answer_received", feedback: "Angle received. The rocket is flying the relative trajectory…" });
+  } catch (error) {
+    document.getElementById("transitFeedback").textContent = `Submission error: ${error.message}`;
+  }
+}
+
+function handleTransitBridgeMessage(event) {
+  if (event.origin !== window.location.origin || !event.data || typeof event.data !== "object") return;
+  if (event.data.type === "transit-start" && event.data.payload) {
+    transitFrameSource = event.source;
+    renderTransitSession({ ...event.data.payload, status: "ready", feedback: "Calculate the angle at the displayed destination distance." });
+  } else if (event.data.type === "transit-result" && event.data.payload && transitSession
+      && event.data.payload.session_id === transitSession.session_id) {
+    renderTransitSession({ ...transitSession, status: event.data.payload.hit ? "hit" : "missed", feedback: event.data.payload.feedback });
+  }
+}
+
 async function loadCatalog() {
   const response = await fetch("/api/catalog");
   const catalog = await response.json();
@@ -303,6 +380,8 @@ async function launchMission() {
     }
 
     updateLaunchMessage(`Mission accepted: ${result.config_path}. Godot is launching in native mode.`);
+    transitSession = null;
+    transitFrameSource = null;
   } catch (error) {
     updateLaunchMessage(`Launch error: ${error.message}`);
   }
@@ -318,6 +397,9 @@ function bindEvents() {
   document.getElementById("launchBackBtn").addEventListener("click", () => showScreen("builderScreen"));
   document.getElementById("launchAgainBtn").addEventListener("click", () => launchMission());
   document.getElementById("settingsFromBuilderBtn").addEventListener("click", () => showScreen("settingsScreen"));
+  document.getElementById("transitBackBtn").addEventListener("click", () => showScreen("builderScreen"));
+  document.getElementById("transitAnswerForm").addEventListener("submit", submitTransitAnswer);
+  window.addEventListener("message", handleTransitBridgeMessage);
 
   document.getElementById("missionSelect").addEventListener("change", (event) => {
     state.missionId = event.target.value;
@@ -348,4 +430,5 @@ window.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
   await loadCatalog();
   showScreen("menuScreen");
+  pollTransitSession();
 });

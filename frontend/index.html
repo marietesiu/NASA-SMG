@@ -244,6 +244,43 @@
             </div>
           </div>
         </section>
+
+        <section id="transitScreen" class="screen">
+          <div class="panel transit-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Relative Navigation · <span id="transitDifficulty">Normal</span></p>
+                <h2>Calculate the intercept angle</h2>
+              </div>
+              <span id="transitDestination" class="transit-destination">Moon</span>
+            </div>
+            <p class="transit-lead">
+              The rocket is the origin (0, 0). Find θ so the rocket's straight path intersects the destination's relative displacement curve.
+            </p>
+            <div class="transit-equations" aria-live="polite">
+              <div class="transit-equation">
+                <span>Rocket trajectory</span>
+                <code id="transitRocketEquation">y = tan(θ) · x</code>
+              </div>
+              <div class="transit-equation">
+                <span>Destination relative to rocket</span>
+                <code id="transitDestinationEquation">y = ax² + bx + c</code>
+              </div>
+            </div>
+            <p class="transit-range">Evaluate the intercept at x = <strong id="transitTargetX">0 km</strong>.</p>
+            <form id="transitAnswerForm" class="transit-form">
+              <label for="transitAngleInput">Required trajectory angle θ</label>
+              <div class="transit-input-row">
+                <input id="transitAngleInput" name="angle" type="number" min="-88.9999" max="88.9999" step="0.0001" inputmode="decimal" required aria-describedby="transitAngleHint" />
+                <span>degrees</span>
+                <button id="transitSubmitBtn" class="primary-button" type="submit">Submit angle</button>
+              </div>
+              <small id="transitAngleHint" class="control-hint">Use the displayed coefficients and distance; angles may be entered to four decimal places.</small>
+            </form>
+            <p id="transitFeedback" class="transit-feedback" role="status" aria-live="polite">Waiting for Godot to provide the transfer data…</p>
+            <button id="transitBackBtn" class="text-button" type="button">Edit mission</button>
+          </div>
+        </section>
       </main>
     </div>
 
