@@ -1,0 +1,384 @@
+{
+  "meta": {
+    "title": "Rocket component properties (simplified)",
+    "version": "2.0",
+    "levels": [
+      "very_low",
+      "low",
+      "medium",
+      "high",
+      "very_high"
+    ],
+    "note": "Every value is one of the five levels. Each option lists only the properties its slot affects."
+  },
+  "properties": {
+    "mass": "Weight the part adds. Lower is better.",
+    "drag": "Air resistance during ascent. Lower is better.",
+    "heat_resistance": "How much aerodynamic heating the part survives. Higher is better.",
+    "strength": "How much aerodynamic and acceleration load the part survives. Higher is better.",
+    "stability": "How well the rocket keeps pointing along its path. Higher is better.",
+    "fuel": "Propellant carried. Higher gives more delta-v.",
+    "thrust": "Engine push. Must be enough to lift the rocket.",
+    "efficiency": "Specific impulse: delta-v obtained per kg of propellant. Higher is better.",
+    "boiloff": "Propellant lost while waiting on the pad. Lower is better."
+  },
+  "components": {
+    "nose": {
+      "tip": {
+        "description": "Leading edge of the vehicle.",
+        "options": [
+          {
+            "id": "pointed_ogive",
+            "name": "Pointed ogive",
+            "description": "Slender and aerodynamic but concentrates heat at the tip.",
+            "properties": {
+              "mass": "very_low",
+              "drag": "low",
+              "heat_resistance": "low"
+            }
+          },
+          {
+            "id": "blunted_cone",
+            "name": "Blunted cone",
+            "description": "Spreads the heat, at the cost of more drag.",
+            "properties": {
+              "mass": "low",
+              "drag": "high",
+              "heat_resistance": "medium"
+            }
+          },
+          {
+            "id": "ablative_cap",
+            "name": "Ablative cap",
+            "description": "Burns away to carry heat off. Heaviest tip.",
+            "properties": {
+              "mass": "medium",
+              "drag": "medium",
+              "heat_resistance": "very_high"
+            }
+          }
+        ]
+      },
+      "bulk_plates": {
+        "description": "Skin plates around the nose section.",
+        "options": [
+          {
+            "id": "aluminum_lithium",
+            "name": "Aluminum-lithium plates",
+            "description": "Light, general purpose.",
+            "properties": {
+              "mass": "low",
+              "strength": "medium",
+              "heat_resistance": "medium"
+            }
+          },
+          {
+            "id": "titanium_alloy",
+            "name": "Titanium alloy plates",
+            "description": "Strong and fairly heat resistant, but heavy.",
+            "properties": {
+              "mass": "high",
+              "strength": "high",
+              "heat_resistance": "high"
+            }
+          },
+          {
+            "id": "ceramic_tile_composite",
+            "name": "Ceramic tile composite",
+            "description": "Best against heat, brittle under load.",
+            "properties": {
+              "mass": "medium",
+              "strength": "low",
+              "heat_resistance": "very_high"
+            }
+          }
+        ]
+      },
+      "payload": {
+        "description": "What the rocket delivers.",
+        "options": [
+          {
+            "id": "science_probe",
+            "name": "Science probe",
+            "description": "Small and light.",
+            "properties": {
+              "mass": "low"
+            }
+          },
+          {
+            "id": "comms_satellite",
+            "name": "Comms satellite",
+            "description": "Compact and rugged.",
+            "properties": {
+              "mass": "medium"
+            }
+          },
+          {
+            "id": "rover_lander",
+            "name": "Rover lander",
+            "description": "Heavy surface vehicle.",
+            "properties": {
+              "mass": "high"
+            }
+          },
+          {
+            "id": "crew_capsule",
+            "name": "Crew capsule",
+            "description": "Heaviest payload.",
+            "properties": {
+              "mass": "very_high"
+            }
+          }
+        ]
+      }
+    },
+    "frame": {
+      "cylindrical_body": {
+        "description": "Main structural tube between nose and engines.",
+        "options": [
+          {
+            "id": "carbon_composite",
+            "name": "Carbon composite",
+            "description": "Lightest, strong, but poor against heat.",
+            "properties": {
+              "mass": "low",
+              "strength": "medium",
+              "heat_resistance": "low"
+            }
+          },
+          {
+            "id": "aluminum_monocoque",
+            "name": "Aluminum monocoque",
+            "description": "Reliable, mid-weight.",
+            "properties": {
+              "mass": "medium",
+              "strength": "medium",
+              "heat_resistance": "medium"
+            }
+          },
+          {
+            "id": "stainless_steel",
+            "name": "Stainless steel",
+            "description": "Very strong and heat resistant, very heavy.",
+            "properties": {
+              "mass": "very_high",
+              "strength": "very_high",
+              "heat_resistance": "high"
+            }
+          }
+        ]
+      },
+      "fairings": {
+        "description": "Shell around the payload.",
+        "options": [
+          {
+            "id": "none",
+            "name": "No fairing",
+            "description": "Payload exposed: no weight, but more drag and no heat protection.",
+            "properties": {
+              "mass": "very_low",
+              "drag": "high",
+              "heat_resistance": "very_low"
+            }
+          },
+          {
+            "id": "clamshell_composite",
+            "name": "Clamshell composite",
+            "description": "Light and streamlined.",
+            "properties": {
+              "mass": "medium",
+              "drag": "low",
+              "heat_resistance": "medium"
+            }
+          },
+          {
+            "id": "ablative_fairing",
+            "name": "Ablative fairing",
+            "description": "Heavy, protects the payload from heat.",
+            "properties": {
+              "mass": "high",
+              "drag": "medium",
+              "heat_resistance": "very_high"
+            }
+          }
+        ]
+      },
+      "fins": {
+        "description": "Aerodynamic stabilizers at the base.",
+        "options": [
+          {
+            "id": "none",
+            "name": "No fins",
+            "description": "Light and clean, but unstable.",
+            "properties": {
+              "mass": "very_low",
+              "drag": "low",
+              "stability": "very_low"
+            }
+          },
+          {
+            "id": "fixed_swept",
+            "name": "Fixed swept fins",
+            "description": "Good stability for little weight.",
+            "properties": {
+              "mass": "low",
+              "drag": "medium",
+              "stability": "medium"
+            }
+          },
+          {
+            "id": "delta_wing",
+            "name": "Delta wings",
+            "description": "More stable, more drag.",
+            "properties": {
+              "mass": "medium",
+              "drag": "high",
+              "stability": "high"
+            }
+          },
+          {
+            "id": "grid_fins",
+            "name": "Grid fins",
+            "description": "Most stable, heaviest, most drag.",
+            "properties": {
+              "mass": "high",
+              "drag": "very_high",
+              "stability": "very_high"
+            }
+          }
+        ]
+      }
+    },
+    "propulsion": {
+      "fuel_tank": {
+        "description": "Tank size. Bigger tanks feed bigger engines, so thrust grows with size.",
+        "options": [
+          {
+            "id": "small",
+            "name": "Small tank",
+            "description": "Compact. Little delta-v.",
+            "properties": {
+              "mass": "low",
+              "fuel": "low",
+              "thrust": "low",
+              "drag": "low"
+            }
+          },
+          {
+            "id": "medium",
+            "name": "Medium tank",
+            "description": "Balanced.",
+            "properties": {
+              "mass": "medium",
+              "fuel": "medium",
+              "thrust": "medium",
+              "drag": "medium"
+            }
+          },
+          {
+            "id": "large",
+            "name": "Large tank",
+            "description": "Long burn, heavy.",
+            "properties": {
+              "mass": "high",
+              "fuel": "high",
+              "thrust": "high",
+              "drag": "high"
+            }
+          },
+          {
+            "id": "extra_large",
+            "name": "Extra large tank",
+            "description": "Most propellant, heaviest and widest.",
+            "properties": {
+              "mass": "very_high",
+              "fuel": "very_high",
+              "thrust": "very_high",
+              "drag": "very_high"
+            }
+          }
+        ]
+      },
+      "oxidizer": {
+        "description": "Oxidizer choice. The fuel is fixed.",
+        "options": [
+          {
+            "id": "LOX",
+            "name": "Liquid oxygen (LOX)",
+            "description": "High performance cryogenic. Boils off.",
+            "properties": {
+              "efficiency": "high",
+              "thrust": "medium",
+              "boiloff": "high"
+            }
+          },
+          {
+            "id": "NTO",
+            "name": "Nitrogen tetroxide (NTO)",
+            "description": "Storable and dense: more thrust, lower efficiency.",
+            "properties": {
+              "efficiency": "low",
+              "thrust": "high",
+              "boiloff": "very_low"
+            }
+          },
+          {
+            "id": "ESO",
+            "name": "Enhanced storable oxidizer (ESO)",
+            "description": "Best efficiency, mild boil-off.",
+            "properties": {
+              "efficiency": "very_high",
+              "thrust": "medium",
+              "boiloff": "low"
+            }
+          }
+        ]
+      },
+      "valves_injectors": {
+        "description": "Sets the oxidizer/fuel mixture.",
+        "options": [
+          {
+            "id": "fuel_rich",
+            "name": "Fuel-rich mixture",
+            "description": "Better efficiency, less thrust.",
+            "properties": {
+              "mass": "low",
+              "efficiency": "high",
+              "thrust": "low"
+            }
+          },
+          {
+            "id": "balanced",
+            "name": "Balanced mixture",
+            "description": "Neutral.",
+            "properties": {
+              "mass": "low",
+              "efficiency": "medium",
+              "thrust": "medium"
+            }
+          },
+          {
+            "id": "oxidizer_rich",
+            "name": "Oxidizer-rich mixture",
+            "description": "More thrust, lower efficiency.",
+            "properties": {
+              "mass": "low",
+              "efficiency": "low",
+              "thrust": "high"
+            }
+          },
+          {
+            "id": "pintle_throttling",
+            "name": "Pintle injector",
+            "description": "Heavier hardware, slightly lower efficiency.",
+            "properties": {
+              "mass": "medium",
+              "efficiency": "low",
+              "thrust": "medium"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

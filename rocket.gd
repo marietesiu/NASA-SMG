@@ -23,17 +23,46 @@ var _smoke: GPUParticles3D
 var _flame_light: OmniLight3D
 var _parachute: Node3D
 var _chute_open: bool = false
+var _upper_r: float = 0.0
+var _lander: bool = false
+var _leg_hinges: Array[Node3D] = []
+## Lander only: height of the node origin above the ground when it stands on its deployed legs.
+var lander_ground_offset: float = 0.0
+var _body_radius_scale: float = 1.0
+var _height_scale: float = 1.0
+var _side_booster_count: int = 2
+var _escape_tower_visible: bool = true
 
 
 func _ready() -> void:
 	build(length / visual_scale)
 
 
+func apply_build_visuals(build_data: Dictionary) -> void:
+	if build_data.is_empty():
+		return
+	var visuals: Dictionary = build_data.get("visuals", {})
+	if visuals.is_empty():
+		return
+	if visuals.has("core_color"):
+		core_color = Color(str(visuals.get("core_color", "#d9d7d5")))
+	if visuals.has("body_radius_scale"):
+		_body_radius_scale = clampf(float(visuals.get("body_radius_scale", 1.0)), 0.75, 1.5)
+	if visuals.has("height_scale"):
+		_height_scale = clampf(float(visuals.get("height_scale", 1.0)), 0.75, 1.5)
+	if visuals.has("side_booster_count"):
+		_side_booster_count = clampi(int(visuals.get("side_booster_count", 2)), 0, 2)
+	if visuals.has("escape_tower_visible"):
+		_escape_tower_visible = bool(visuals.get("escape_tower_visible", true))
+
+
 ## (Re)build the model for a design of the given length (metres, as OpenRocket reports it).
 ## The shape follows NASA's Space Launch System: orange core stage, two white solid
 ## rocket boosters, upper stage, crew capsule and launch abort tower.
-func build(design_length: float) -> void:
-	length = design_length * visual_scale
+func build(design_length: float, build_data: Dictionary = {}) -> void:
+	if not build_data.is_empty():
+		apply_build_visuals(build_data)
+	length = design_length * visual_scale * _height_scale
 	if _model != null:
 		_model.queue_free()
 	_flames.clear()
@@ -47,10 +76,11 @@ func build(design_length: float) -> void:
 	var white := _material(white_color, 0.45)
 	var dark := _material(dark_color, 0.6)
 	var l: float = length
-	var core_r: float = 0.043 * l
-	var upper_r: float = 0.026 * l
-	var booster_r: float = 0.019 * l
+	var core_r: float = 0.043 * l * _body_radius_scale
+	var upper_r: float = 0.026 * l * _body_radius_scale
+	var booster_r: float = 0.019 * l * _body_radius_scale
 	var booster_x: float = core_r + booster_r
+	_upper_r = upper_r
 
 	# Core stage, tapered adapter, upper stage, service module, capsule, abort tower.
 	_section_parent = _lower
@@ -59,15 +89,18 @@ func build(design_length: float) -> void:
 	_section_parent = _model
 	_section(0.73 * l, 0.85 * l, upper_r, upper_r, white)
 	_section(0.85 * l, 0.89 * l, upper_r, 0.012 * l, white)
-	_section(0.89 * l, 0.97 * l, 0.006 * l, 0.006 * l, white)
-	_section(0.97 * l, 1.0 * l, 0.006 * l, 0.0, white)
+	if _escape_tower_visible:
+		_section(0.89 * l, 0.97 * l, 0.006 * l, 0.006 * l, white)
+		_section(0.97 * l, 1.0 * l, 0.006 * l, 0.0, white)
 	# Four core engines.
 	_section_parent = _lower
 	for x: float in [-1.0, 1.0]:
 		for z: float in [-1.0, 1.0]:
 			_section(-0.015 * l, 0.03 * l, 0.013 * l, 0.006 * l, dark, Vector2(x, z) * 0.02 * l)
 	# Solid rocket boosters.
-	for side: float in [-1.0, 1.0]:
+	var booster_sides: Array[float] = [-1.0, 1.0]
+	for index in range(_side_booster_count):
+		var side: float = booster_sides[index]
 		var at := Vector2(0.0, side * booster_x) # on Z, so both show from the launch camera on +X
 		_section(-0.03 * l, 0.0, 0.021 * l, 0.012 * l, dark, at)
 		_section(0.0, 0.04 * l, 0.026 * l, booster_r, white, at)
@@ -125,9 +158,10 @@ func _build_exhaust(core_r: float, booster_r: float, booster_x: float) -> void:
 	# x = offset along the booster axis (Z), y = height, z = flame sprite size.
 	var nozzles: Array[Vector3] = [
 		Vector3(0.0, -0.015 * length, core_r * 2.5),
-		Vector3(-booster_x, -0.03 * length, booster_r * 3.5),
-		Vector3(booster_x, -0.03 * length, booster_r * 3.5),
 	]
+	var booster_sides: Array[float] = [-1.0, 1.0]
+	for index in range(_side_booster_count):
+		nozzles.append(Vector3(booster_sides[index] * booster_x, -0.03 * length, booster_r * 3.5))
 	for nozzle in nozzles:
 		var flame := _make_emitter(60, 0.12, nozzle.z, Vector2(length * 2.5, length * 4.0), [
 			Color(1.0, 0.97, 0.7, 1.0), Color(1.0, 0.55, 0.1, 0.9), Color(1.0, 0.3, 0.05, 0.0),
@@ -270,7 +304,7 @@ func set_pose(at: Vector3, nose: Vector3, side: Vector3) -> void:
 func _set_burning(burning: bool) -> void:
 	for flame in _flames:
 		flame.emitting = burning
-	_smoke.emitting = burning
+	_smoke.emitting = burning and not _lander # no smoke trail in vacuum
 	_flame_light.light_energy = 2.0 if burning else 0.0
 
 
@@ -289,3 +323,72 @@ func deploy_parachute() -> void:
 	_parachute.scale = Vector3.ONE * 0.05
 	create_tween().tween_property(_parachute, "scale", Vector3.ONE, 0.6) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## Turn the model into the lunar lander: only the upper stage and capsule remain, the node
+## origin moves to the upper stage's base, one engine is left, and four folded legs are added.
+func make_lander() -> void:
+	if _lower != null:
+		_lower.queue_free()
+		_lower = null
+	_lander = true
+	var base: float = 0.73 * length
+	_model.position.y = -base
+	while _flames.size() > 1:
+		_flames.pop_back().queue_free()
+	_flames[0].position = Vector3(0.0, base, 0.0)
+	var process := _flames[0].process_material as ParticleProcessMaterial
+	process.initial_velocity_min *= 0.25
+	process.initial_velocity_max *= 0.25
+	_flame_light.position.y = base - 0.02 * length
+
+	var leg_length: float = 0.07 * length
+	var pivot_height: float = 0.02 * length
+	var mat := _material(dark_color, 0.6)
+	_leg_hinges.clear()
+	for i in 4:
+		var angle: float = PI / 4.0 + i * PI / 2.0
+		var pivot := Node3D.new()
+		pivot.position = Vector3(cos(angle), 0.0, sin(angle)) * (_upper_r + 0.004 * length) \
+				+ Vector3.UP * (base + pivot_height)
+		pivot.rotation.y = -angle # local +X points away from the body
+		_model.add_child(pivot)
+		var hinge := Node3D.new() # folded: the leg lies up along the body
+		pivot.add_child(hinge)
+		var mesh := CylinderMesh.new()
+		mesh.top_radius = 0.003 * length
+		mesh.bottom_radius = 0.003 * length
+		mesh.height = leg_length
+		mesh.material = mat
+		var leg := MeshInstance3D.new()
+		leg.mesh = mesh
+		leg.position.y = leg_length * 0.5
+		hinge.add_child(leg)
+		var pad_mesh := CylinderMesh.new()
+		pad_mesh.top_radius = 0.009 * length
+		pad_mesh.bottom_radius = 0.009 * length
+		pad_mesh.height = 0.003 * length
+		pad_mesh.material = mat
+		var pad := MeshInstance3D.new()
+		pad.mesh = pad_mesh
+		pad.position.y = leg_length
+		pad.rotation.z = LEG_DEPLOY_ANGLE # level with the ground once the leg is down
+		hinge.add_child(pad)
+		_leg_hinges.append(hinge)
+	lander_ground_offset = leg_length * cos(PI - LEG_DEPLOY_ANGLE) - pivot_height
+
+
+const LEG_DEPLOY_ANGLE := deg_to_rad(140.0)
+
+
+## Swing the landing legs out and down.
+func deploy_legs(duration: float) -> void:
+	var tween := create_tween().set_parallel()
+	for hinge in _leg_hinges:
+		tween.tween_property(hinge, "rotation:z", -LEG_DEPLOY_ANGLE, duration) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## Lander engine on or off.
+func set_engine(on: bool) -> void:
+	_set_burning(on)

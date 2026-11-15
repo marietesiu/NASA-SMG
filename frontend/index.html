@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planetary Landing Simulator</title>
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <div class="brand-mark">PL</div>
+          <div>
+            <p class="eyebrow">Mission Control</p>
+            <h1>Planetary Landing Simulator</h1>
+          </div>
+        </div>
+        <div class="status-pill">
+          <span class="status-led"></span>
+          <span id="runtimeStatus">Standby</span>
+        </div>
+      </header>
+
+      <main>
+        <section id="menuScreen" class="screen active">
+          <div class="hero-panel panel">
+            <div class="hero-copy">
+              <p class="eyebrow">Build. Launch. Land.</p>
+              <h2>Assemble a mission-ready launcher.</h2>
+              <p class="lead">
+                Configure a mission, pick the vehicle architecture, and send a validated launch order to the native Godot simulation.
+              </p>
+              <div class="button-row">
+                <button id="startMissionBtn" class="primary-button">Start Mission</button>
+                <button id="showBuilderBtn" class="secondary-button">Rocket Builder</button>
+                <button id="showSettingsBtn" class="secondary-button ghost-button">Settings</button>
+              </div>
+            </div>
+
+            <aside class="mission-card panel-inner">
+              <span class="card-label">Current Mission</span>
+              <h3 id="missionSummaryName">Around Earth</h3>
+              <ul>
+                <li><span>Target</span><strong id="missionSummaryTarget">Low Earth Orbit</strong></li>
+                <li><span>Difficulty</span><strong id="missionSummaryDifficulty">Normal</strong></li>
+                <li><span>Budget</span><strong id="missionSummaryBudget">54.8 M$</strong></li>
+                <li><span>Launch</span><strong id="missionSummaryLaunch">Ready</strong></li>
+              </ul>
+            </aside>
+          </div>
+        </section>
+
+        <section id="builderScreen" class="screen">
+          <div class="panel builder-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Rocket Builder</p>
+                <h2>Configure the full vehicle stack</h2>
+              </div>
+              <button id="backToMenuBtn" class="text-button">Back</button>
+            </div>
+
+            <div class="builder-layout">
+              <div class="builder-column">
+                <div class="control-group">
+                  <label for="missionSelect">Mission</label>
+                  <select id="missionSelect"></select>
+                </div>
+
+                <div class="control-group">
+                  <label for="difficultySelect">Difficulty</label>
+                  <select id="difficultySelect"></select>
+                  <small id="difficultyDescription" class="control-hint"></small>
+                </div>
+
+                <div class="budget-panel panel-inner">
+                  <div class="budget-head">
+                    <span>Budget</span>
+                    <span id="budgetText">0.0 / 0.0 M$</span>
+                  </div>
+                  <div class="budget-bar">
+                    <div id="budgetBar" class="budget-fill"></div>
+                  </div>
+                </div>
+
+                <div id="categoryList" class="category-list"></div>
+              </div>
+
+              <aside class="summary-column panel-inner">
+                <h3>Vehicle summary</h3>
+                <div class="summary-stack">
+                  <div class="metric"><span>Dry mass</span><strong id="dryMassValue">0 kg</strong></div>
+                  <div class="metric"><span>Propellant</span><strong id="propellantValue">0 kg</strong></div>
+                  <div class="metric"><span>Thrust</span><strong id="thrustValue">0 N</strong></div>
+                  <div class="metric"><span>Isp</span><strong id="ispValue">0 s</strong></div>
+                  <div class="metric"><span>TWR</span><strong id="twrValue">0.0</strong></div>
+                  <div class="metric"><span>Structure</span><strong id="structureValue">0 Pa·rad</strong></div>
+                  <div class="metric"><span>Tank pressure</span><strong id="tankPressureValue">0 Pa</strong></div>
+                  <div class="metric"><span>Thermal</span><strong id="thermalValue">0 W/m²</strong></div>
+                </div>
+
+                <div class="summary-actions">
+                  <button id="launchSimBtn" class="primary-button">Iniciar Simulación</button>
+                  <button id="settingsFromBuilderBtn" class="secondary-button">Settings</button>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <section id="settingsScreen" class="screen">
+          <div class="panel settings-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">System Settings</p>
+                <h2>Mission and audio settings</h2>
+              </div>
+              <button id="settingsBackBtn" class="text-button">Back</button>
+            </div>
+
+            <div class="settings-grid">
+              <label class="switch-row">
+                <span>Audio enabled</span>
+                <input id="audioEnabled" type="checkbox" checked />
+              </label>
+
+              <label class="range-row">
+                <span>Master volume</span>
+                <input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="0.8" />
+              </label>
+
+              <label class="field-row">
+                <span>Graphics preset</span>
+                <select id="graphicsPreset">
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section id="launchScreen" class="screen">
+          <div class="panel launch-panel">
+            <div class="launch-center">
+              <div class="launch-badge">Simulation status</div>
+              <h2>Mission launched in Godot</h2>
+              <p id="launchMessage">The mission was sent to the local launcher.</p>
+              <div class="button-row">
+                <button id="launchBackBtn" class="secondary-button">Edit mission</button>
+                <button id="launchAgainBtn" class="primary-button">Launch again</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./js/app.js"></script>
+  </body>
+</html>

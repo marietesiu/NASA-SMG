@@ -23,6 +23,12 @@ const LAYERS: Array[Dictionary] = [
 
 ## Scene metres per real metre of the OpenRocket trajectory. Below 1 the world is
 ## compressed, so the rocket crosses fewer of its own lengths per second.
+## Missions that end on another world, and the scene that lands there.
+const LANDING_SCENES := {
+	"to_the_moon": "res://moon_landing.tscn",
+	"delivering_to_mars": "res://mars_landing.tscn",
+}
+
 @export var altitude_scale: float = 0.08
 ## Seconds between reaching the third layer and the camera stopping.
 @export var camera_stop_delay: float = 3.0
@@ -73,6 +79,73 @@ var _close_up: float = 0.0
 func _enter_tree() -> void:
 	# Before GmatOrbit writes its mission script in its own _ready.
 	($GmatOrbit as GmatOrbit).dry_mass_kg = orbit_mass_kg
+	var config: Dictionary = _read_mission_config()
+	if config.has("target_altitude_km"):
+		var altitude := float(config.get("target_altitude_km", 400.0))
+		if altitude > 0.0 and altitude < 2000.0:
+			($GmatOrbit as GmatOrbit).altitude_km = altitude
+	if config.has("target_inclination_deg"):
+		var inclination := float(config.get("target_inclination_deg", 28.5))
+		if inclination >= 0.0 and inclination <= 180.0:
+			($GmatOrbit as GmatOrbit).inclination_deg = inclination
+
+
+func _read_mission_config() -> Dictionary:
+	var path := ProjectSettings.globalize_path("res://mission_config.json")
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var json := JSON.new()
+	var err := json.parse(file.get_as_text())
+	if err != OK:
+		return {}
+	var data: Variant = json.data
+	return data if typeof(data) == TYPE_DICTIONARY else {}
+
+
+func _load_build_data() -> Dictionary:
+	var config := _read_mission_config()
+	var selected: Dictionary = config.get("selected_components", {})
+	if typeof(selected) != TYPE_DICTIONARY or selected.is_empty():
+		return {}
+	var catalog_path := ProjectSettings.globalize_path("res://catalog.json")
+	if not FileAccess.file_exists(catalog_path):
+		return {}
+	var file := FileAccess.open(catalog_path, FileAccess.READ)
+	if file == null:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	var catalog: Dictionary = json.data
+	if typeof(catalog) != TYPE_DICTIONARY:
+		return {}
+	var selected_options: Dictionary = {}
+	for category in catalog.get("categories", []):
+		var category_id: String = String(category.get("id", ""))
+		if not selected.has(category_id):
+			continue
+		var option_id: String = String(selected.get(category_id, ""))
+		for option in category.get("options", []):
+			if option.get("id") == option_id:
+				selected_options[category_id] = option
+				break
+	var core_option: Dictionary = selected_options.get("core_structure", {})
+	var nose_option: Dictionary = selected_options.get("nose_cone_tip", {})
+	var booster_option: Dictionary = selected_options.get("side_boosters", {})
+	var core_visuals: Dictionary = core_option.get("visuals", {})
+	var nose_visuals: Dictionary = nose_option.get("visuals", {})
+	var booster_visuals: Dictionary = booster_option.get("visuals", {})
+	var visuals: Dictionary = {
+		"core_color": core_visuals.get("core_color", "#727a83"),
+		"body_radius_scale": nose_visuals.get("body_radius_scale", 1.0),
+		"height_scale": nose_visuals.get("height_scale", 1.0),
+		"side_booster_count": booster_visuals.get("side_booster_count", 2),
+		"escape_tower_visible": nose_visuals.get("escape_tower_visible", true),
+	}
+	return {"visuals": visuals}
 
 
 func _ready() -> void:
@@ -118,13 +191,18 @@ func _process_ascent(delta: float) -> void:
 		Phase.ASCENT:
 			# The camera follows the rocket for the whole ascent.
 			if _sim.finished:
-				_banner.text = "Successful Launch"
+				_banner.text = "Vehicle Failure" if _sim.vehicle_failed else "Successful Launch"
 				_banner.show()
-				_status.text = ""
+				_status.text = _sim.vehicle_failure_reason if _sim.vehicle_failed else ""
 				_set_phase(Phase.SUCCESS)
 		Phase.SUCCESS:
 			if _phase_time >= success_hold:
-				if _orbit.is_ready:
+				if _sim.vehicle_failed:
+					_status.text = _sim.vehicle_failure_reason
+				elif LANDING_SCENES.has(_read_mission_config().get("mission_id", "")):
+					# The coast from the edge of the atmosphere to the Moon or Mars is skipped.
+					get_tree().change_scene_to_file(LANDING_SCENES[_read_mission_config().mission_id])
+				elif _orbit.is_ready:
 					_enter_orbit()
 				elif not _orbit_error.is_empty():
 					_status.text = "GMAT error: %s" % _orbit_error
@@ -222,7 +300,7 @@ func _process_orbit(delta: float) -> void:
 
 
 func _on_ready_to_launch(rocket_name: String, length: float, _radius: float) -> void:
-	_rocket.build(length)
+	_rocket.build(length, _load_build_data())
 	_camera.frame_target(_rocket.length)
 	_ready_to_launch = true
 	_status.text = "Press SPACE to launch"

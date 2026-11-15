@@ -40,6 +40,8 @@ var sim_time: float = 0.0
 var launched: bool = false
 ## True once playback reached the end of the simulated flight.
 var finished: bool = false
+var vehicle_failed: bool = false
+var vehicle_failure_reason: String = ""
 
 var _pid: int = -1
 var _stdio: FileAccess
@@ -134,14 +136,17 @@ func _start_bridge() -> void:
 		ProjectSettings.globalize_path(rocket_file),
 		str(simulation_index),
 	]
-	if infinite_fuel:
+	var vehicle_spec := _vehicle_from_config()
+	if vehicle_spec.is_empty() and infinite_fuel:
 		args.append_array(["--infinite-fuel", "--thrust-scale", str(thrust_scale)])
 		if max_speed > 0.0:
 			args.append_array(["--max-speed", str(max_speed)])
-	if max_altitude > 0.0:
+	if vehicle_spec.is_empty() and max_altitude > 0.0:
 		args.append_array(["--max-altitude", str(max_altitude)])
-	if max_flight_time > 0.0:
+	if vehicle_spec.is_empty() and max_flight_time > 0.0:
 		args.append_array(["--max-time", str(max_flight_time)])
+	if not vehicle_spec.is_empty():
+		args.append_array(["--vehicle", vehicle_spec])
 	if calm_air:
 		args.append("--calm")
 	var info: Dictionary = OS.execute_with_pipe(java, args) # blocking pipes: the reader thread sleeps until OpenRocket writes a line
@@ -205,6 +210,141 @@ func _handle_line(line: String) -> void:
 			_sim_done = true
 		"ERROR":
 			failed.emit(line.trim_prefix("ERROR,"))
+		"FAIL":
+			vehicle_failed = true
+			vehicle_failure_reason = "%s: %.5g / %.5g" % [f[2], f[3].to_float(), f[4].to_float()] if f.size() >= 5 else line
+			failed.emit("Vehicle failure - " + vehicle_failure_reason)
+
+
+func _read_json_file(path: String) -> Dictionary:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var json := JSON.new()
+	var err := json.parse(file.get_as_text())
+	if err != OK:
+		return {}
+	var data: Variant = json.data
+	return data if typeof(data) == TYPE_DICTIONARY else {}
+
+
+func _vehicle_from_config() -> String:
+	var config := _read_json_file(ProjectSettings.globalize_path("res://mission_config.json"))
+	if config.is_empty():
+		return ""
+	var selected: Dictionary = config.get("selected_components", {})
+	if typeof(selected) != TYPE_DICTIONARY or selected.is_empty():
+		return ""
+	var catalog := _read_json_file(ProjectSettings.globalize_path("res://catalog.json"))
+	if catalog.is_empty():
+		return ""
+	var difficulty_settings: Dictionary = catalog.get("difficulties", {}).get(config.get("difficulty", "normal"), {})
+	var fuel_multiplier: float = float(difficulty_settings.get("fuel", 1.0))
+	var hazard_multiplier: float = maxf(float(difficulty_settings.get("hazard", 1.0)), 0.01)
+
+	var dry_mass: float = 0.0
+	var propellant: float = 0.0
+	var thrust_sl: float = 0.0
+	var thrust_vac: float = 0.0
+	var ref_area: float = 0.0
+	var length: float = 0.0
+	var static_margin_total: float = 0.0
+	var cg_dry_weight: float = 0.0
+	var cg_prop_weight: float = 0.0
+	var gimbal_max: float = 0.0
+	var q_alpha_min: float = INF
+	var tank_limit: float = INF
+	var heat_limit: float = INF
+	var prop_density: float = 1000.0
+	var column: float = 3.0
+	var ullage: float = 2000.0
+	var count: int = 0
+	var nose_radius: float = 0.8
+	var wind_ground: float = 5.0
+	var wind_jet: float = 25.0
+	var engine_isp: float = 330.0
+
+	for category in catalog.get("categories", []):
+		var option_id: String = selected.get(category.get("id", ""), "")
+		if option_id.is_empty():
+			continue
+		var option: Dictionary = {}
+		for candidate in category.get("options", []):
+			if candidate.get("id") == option_id:
+				option = candidate
+				break
+		if option.is_empty():
+			continue
+		var physics: Dictionary = option.get("physics", {})
+		if physics.is_empty():
+			continue
+		var category_id: String = String(category.get("id", ""))
+		count += 1
+		dry_mass += float(physics.get("dry_mass", 0.0))
+		if category_id in ["propellant_tanks", "side_boosters"]:
+			propellant += float(physics.get("propellant", 0.0))
+			cg_prop_weight += float(physics.get("propellant", 0.0)) * float(physics.get("cg_prop", 0.5))
+		if category_id in ["main_engines", "side_boosters"]:
+			thrust_sl += float(physics.get("thrust_sl", 0.0))
+			thrust_vac += float(physics.get("thrust_vac", 0.0))
+			engine_isp = maxf(engine_isp, float(physics.get("isp_vac", 0.0)))
+		ref_area = maxf(ref_area, float(physics.get("ref_area", 0.0)))
+		length = maxf(length, float(physics.get("length", 0.0)))
+		static_margin_total += float(physics.get("static_margin", 0.08))
+		cg_dry_weight += float(physics.get("dry_mass", 0.0)) * float(physics.get("cg_dry", 0.5))
+		gimbal_max = maxf(gimbal_max, float(physics.get("gimbal_max", 0.0)))
+		if physics.has("q_alpha_limit"):
+			q_alpha_min = minf(q_alpha_min, float(physics.get("q_alpha_limit", 0.0)))
+		if category_id in ["bulk_plates", "core_structure", "propellant_tanks"] \
+				and float(physics.get("tank_limit", 0.0)) > 0.0:
+			tank_limit = minf(tank_limit, float(physics.get("tank_limit", INF)))
+		if category_id == "thermal_protection" and float(physics.get("heat_limit", 0.0)) > 0.0:
+			heat_limit = minf(heat_limit, float(physics.get("heat_limit", INF)))
+		if physics.has("nose_radius"):
+			nose_radius = maxf(nose_radius, float(physics.get("nose_radius", 0.0)))
+		if physics.has("prop_density"):
+			prop_density = maxf(prop_density, float(physics.get("prop_density", 0.0)))
+		if physics.has("column"):
+			column = maxf(column, float(physics.get("column", 0.0)))
+		if physics.has("ullage"):
+			ullage = maxf(ullage, float(physics.get("ullage", 0.0)))
+
+	if dry_mass <= 0.0 or count == 0:
+		return ""
+	if q_alpha_min == INF:
+		q_alpha_min = 3000.0
+	if tank_limit == INF:
+		tank_limit = 500000.0
+	if heat_limit == INF:
+		heat_limit = 100000.0
+	q_alpha_min /= hazard_multiplier
+	tank_limit /= hazard_multiplier
+	heat_limit /= hazard_multiplier
+	if ref_area <= 0.0:
+		ref_area = 1.0
+	if length <= 0.0:
+		length = 18.0
+	if propellant <= 0.0:
+		propellant = maxf(dry_mass * 0.15, 30000.0)
+	propellant *= maxf(fuel_multiplier, 0.01)
+	if thrust_vac <= 0.0:
+		thrust_vac = 4200000.0
+	if thrust_sl <= 0.0:
+		thrust_sl = thrust_vac * 0.8
+	if gimbal_max <= 0.0:
+		gimbal_max = 1.3
+	var cg_dry: float = cg_dry_weight / maxf(dry_mass, 1.0)
+	var cg_prop: float = cg_prop_weight / maxf(propellant, 1.0)
+	var static_margin: float = static_margin_total / maxf(count, 1.0)
+	return (
+		"dry_mass=%.1f,propellant=%.1f,thrust_sl=%.1f,thrust_vac=%.1f,isp_vac=%.1f,ref_area=%.4f,length=%.4f,"
+		+ "cg_dry=%.4f,cg_prop=%.4f,static_margin=%.4f,gimbal_max=%.4f,q_alpha_limit=%.1f,tank_limit=%.1f,"
+		+ "ullage=%.1f,prop_density=%.1f,column=%.1f,heat_limit=%.1f,nose_radius=%.4f,wind_ground=%.1f,wind_jet=%.1f"
+	) % [
+		dry_mass, propellant, thrust_sl, thrust_vac, engine_isp, ref_area, length,
+		cg_dry, cg_prop, static_margin, gimbal_max, q_alpha_min, tank_limit,
+		ullage, prop_density, column, heat_limit, nose_radius, wind_ground, wind_jet
+	]
 
 
 ## OpenRocket world (x east, y north, z up) -> Godot (x east, y up, -z north).

@@ -1,0 +1,100 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://surface_landing.gd" id="1_landing"]
+[ext_resource type="Script" path="res://rocket.gd" id="2_rocket"]
+[ext_resource type="Shader" path="res://sky.gdshader" id="3_sky"]
+[ext_resource type="Texture2D" path="res://textures/stars_sky.jpg" id="4_stars"]
+[ext_resource type="Script" path="res://planet_surface.gd" id="5_surface"]
+
+[sub_resource type="ShaderMaterial" id="Sky_mat"]
+shader = ExtResource("3_sky")
+shader_parameter/stars = ExtResource("4_stars")
+shader_parameter/zoom = 4.0
+shader_parameter/star_brightness = 3.0
+shader_parameter/star_amount = 1.0
+shader_parameter/top_color = Color(0, 0, 0, 1)
+shader_parameter/horizon_color = Color(0, 0, 0, 1)
+
+[sub_resource type="Sky" id="Sky_res"]
+sky_material = SubResource("Sky_mat")
+
+[sub_resource type="Environment" id="Env_res"]
+background_mode = 2
+sky = SubResource("Sky_res")
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.04
+tonemap_mode = 2
+
+[node name="MoonLanding" type="Node3D"]
+script = ExtResource("1_landing")
+body = 0
+sun_from = Vector3(-0.75, 0.3, 0.55)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_res")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+light_color = Color(1, 1, 1, 1)
+light_energy = 1.6
+shadow_enabled = true
+directional_shadow_max_distance = 700.0
+
+[node name="Surface" type="Node3D" parent="."]
+script = ExtResource("5_surface")
+body = 0
+crater_count = 90
+
+[node name="Rocket" type="Node3D" parent="."]
+script = ExtResource("2_rocket")
+
+[node name="SurfaceCamera" type="Camera3D" parent="."]
+current = true
+fov = 50.0
+near = 0.3
+far = 40000.0
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Telemetry" type="Label" parent="HUD"]
+unique_name_in_owner = true
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 460.0
+offset_bottom = 200.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 24
+
+[node name="Caption" type="Label" parent="HUD"]
+unique_name_in_owner = true
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 80.0
+offset_top = -230.0
+offset_right = -80.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+vertical_alignment = 2
+autowrap_mode = 3
+
+[node name="Banner" type="Label" parent="HUD"]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 190.0
+offset_bottom = 290.0
+grow_horizontal = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 64
+horizontal_alignment = 1
+vertical_alignment = 1

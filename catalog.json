@@ -1,0 +1,779 @@
+{
+  "missions": [
+    {
+      "id": "around_earth",
+      "name": "Around Earth",
+      "description": "Low Earth orbit insertion with a compact launch profile and conservative structural margins.",
+      "budget_bonus": 0.12,
+      "target_altitude_km": 400.0,
+      "target_inclination_deg": 28.5,
+      "min_delta_v": 9400.0,
+      "unlocked": true,
+      "supported_by_runtime": true
+    },
+    {
+      "id": "to_the_moon",
+      "name": "To the Moon!",
+      "description": "Translunar trajectory with higher payload demands and greater thermal exposure.",
+      "budget_bonus": 0.2,
+      "target_altitude_km": 384400.0,
+      "target_inclination_deg": 28.5,
+      "min_delta_v": 11800.0,
+      "unlocked": true,
+      "supported_by_runtime": true
+    },
+    {
+      "id": "delivering_to_mars",
+      "name": "Delivering to Mars!",
+      "description": "Interplanetary departure requiring high reliability and stronger thermal protection.",
+      "budget_bonus": 0.3,
+      "target_altitude_km": 287000000.0,
+      "target_inclination_deg": 25.0,
+      "min_delta_v": 13200.0,
+      "unlocked": true,
+      "supported_by_runtime": true
+    }
+  ],
+  "difficulties": {
+    "easy": {
+      "label": "Easy",
+      "fuel": 1.5,
+      "hazard": 0.5,
+      "budget_multiplier": 1.15,
+      "description": "More propellant margin, lower hazard and more forgiving ascent performance."
+    },
+    "normal": {
+      "label": "Normal",
+      "fuel": 1.0,
+      "hazard": 1.0,
+      "budget_multiplier": 1.0,
+      "description": "Balanced mission profile with realistic constraint pressure."
+    },
+    "hard": {
+      "label": "Hard",
+      "fuel": 0.75,
+      "hazard": 1.5,
+      "budget_multiplier": 0.88,
+      "description": "Tighter margins, higher aerodynamic and thermal pressure, and limited budget relief."
+    },
+    "extreme": {
+      "label": "Extreme",
+      "fuel": 0.5,
+      "hazard": 2.0,
+      "budget_multiplier": 0.72,
+      "description": "High-risk mission with aggressive performance targets and reduced fuel margin."
+    }
+  },
+  "categories": [
+    {
+      "id": "nose_cone_tip",
+      "name": "Nose cone / tip",
+      "description": "Forward fairing and thermal tip geometry.",
+      "options": [
+        {
+          "id": "nose_cone_tip_0",
+          "index": 0,
+          "name": "Classic conical tip",
+          "tier": "SLS Block 1",
+          "description": "Reliable ogive-like forward shape with moderate thermal protection.",
+          "cost_m": 2.2,
+          "physics": {
+            "dry_mass": 820.0,
+            "propellant": 0.0,
+            "thrust_sl": 0.0,
+            "thrust_vac": 0.0,
+            "isp_vac": 0.0,
+            "ref_area": 0.54,
+            "length": 4.2,
+            "cg_dry": 0.33,
+            "cg_prop": 0.36,
+            "static_margin": 0.08,
+            "gimbal_max": 1.2,
+            "q_alpha_limit": 2800.0,
+            "tank_limit": 0.0,
+            "ullage": 0.0,
+            "prop_density": 0.0,
+            "column": 0.0,
+            "heat_limit": 90000.0,
+            "nose_radius": 0.8,
+            "wind_ground": 0.0,
+            "wind_jet": 0.0
+          },
+          "visuals": {
+            "core_color": "#d9d7d5",
+            "escape_tower_visible": true,
+            "side_booster_count": 2,
+            "body_radius_scale": 1.0,
+            "height_scale": 1.0
+          }
+        },
+        {
+          "id": "nose_cone_tip_1",
+          "index": 1,
+          "name": "Pyramid ogive",
+          "tier": "SLS Block 1B / 2",
+          "description": "Slender nose with better aerodynamic stability and improved insulation.",
+          "cost_m": 3.4,
+          "physics": {
+            "dry_mass": 980.0,
+            "propellant": 0.0,
+            "thrust_sl": 0.0,
+            "thrust_vac": 0.0,
+            "isp_vac": 0.0,
+            "ref_area": 0.61,
+            "length": 4.9,
+            "cg_dry": 0.34,
+            "cg_prop": 0.37,
+            "static_margin": 0.12,
+            "gimbal_max": 1.4,
+            "q_alpha_limit": 3600.0,
+            "tank_limit": 0.0,
+            "ullage": 0.0,
+            "prop_density": 0.0,
+            "column": 0.0,
+            "heat_limit": 125000.0,
+            "nose_radius": 1.0,
+            "wind_ground": 0.0,
+            "wind_jet": 0.0
+          },
+          "visuals": {
+            "core_color": "#e7edf5",
+            "escape_tower_visible": true,
+            "side_booster_count": 2,
+            "body_radius_scale": 1.08,
+            "height_scale": 1.12
+          }
+        },
+        {
+          "id": "nose_cone_tip_2",
+          "index": 2,
+          "name": "Starship flared tip",
+          "tier": "Starship V3",
+          "description": "High-temperature flared nose for hot reentry and extended interplanetary loads.",
+          "cost_m": 4.9,
+          "physics": {
+            "dry_mass": 1210.0,
+            "propellant": 0.0,
+            "thrust_sl": 0.0,
+            "thrust_vac": 0.0,
+            "isp_vac": 0.0,
+            "ref_area": 0.73,
+            "length": 5.5,
+            "cg_dry": 0.35,
+            "cg_prop": 0.38,
+            "static_margin": 0.15,
+            "gimbal_max": 1.5,
+            "q_alpha_limit": 4300.0,
+            "tank_limit": 0.0,
+            "ullage": 0.0,
+            "prop_density": 0.0,
+            "column": 0.0,
+            "heat_limit": 170000.0,
+            "nose_radius": 1.2,
+            "wind_ground": 0.0,
+            "wind_jet": 0.0
+          },
+          "visuals": {
+            "core_color": "#dfe7ee",
+            "escape_tower_visible": false,
+            "side_booster_count": 0,
+            "body_radius_scale": 1.16,
+            "height_scale": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "frustum",
+      "name": "Frustum / shoulder",
+      "description": "Upper-body taper and in-between cross-section transitions.",
+      "options": [
+        {
+          "id": "frustum_0",
+          "index": 0,
+          "name": "Short taper",
+          "tier": "SLS Block 1",
+          "description": "Shortened transition section for conventional payload enclosures.",
+          "cost_m": 1.1,
+          "physics": { "dry_mass": 1500.0, "propellant": 0.0, "ref_area": 0.18, "length": 3.1, "cg_dry": 0.5, "cg_prop": 0.5, "static_margin": 0.06, "q_alpha_limit": 2700.0, "heat_limit": 70000.0 },
+          "visuals": { "core_color": "#8e939a", "body_radius_scale": 0.96, "height_scale": 0.9 }
+        },
+        {
+          "id": "frustum_1",
+          "index": 1,
+          "name": "Expanded interstage",
+          "tier": "SLS Block 1B / 2",
+          "description": "Longer transition section for larger payload volumes and moderate stability margin.",
+          "cost_m": 1.8,
+          "physics": { "dry_mass": 2120.0, "propellant": 0.0, "ref_area": 0.24, "length": 4.3, "cg_dry": 0.51, "cg_prop": 0.51, "static_margin": 0.09, "q_alpha_limit": 3400.0, "heat_limit": 98000.0 },
+          "visuals": { "core_color": "#a3acb8", "body_radius_scale": 1.04, "height_scale": 1.12 }
+        },
+        {
+          "id": "frustum_2",
+          "index": 2,
+          "name": "V3 flared shoulder",
+          "tier": "Starship V3",
+          "description": "Large, low-drag taper for high-mass deep-space missions.",
+          "cost_m": 2.6,
+          "physics": { "dry_mass": 2900.0, "propellant": 0.0, "ref_area": 0.31, "length": 5.4, "cg_dry": 0.52, "cg_prop": 0.52, "static_margin": 0.12, "q_alpha_limit": 4000.0, "heat_limit": 143000.0 },
+          "visuals": { "core_color": "#b2bec9", "body_radius_scale": 1.15, "height_scale": 1.25 }
+        }
+      ]
+    },
+    {
+      "id": "bulk_plates",
+      "name": "Bulkheads / structural plates",
+      "description": "Primary ring loads and section interfaces.",
+      "options": [
+        {
+          "id": "bulk_plates_0",
+          "index": 0,
+          "name": "Aluminum louvers",
+          "tier": "SLS Block 1",
+          "description": "Standard ring structure with conservative loads.",
+          "cost_m": 1.4,
+          "physics": { "dry_mass": 3400.0, "ref_area": 0.12, "length": 2.0, "cg_dry": 0.46, "cg_prop": 0.47, "static_margin": 0.04, "q_alpha_limit": 2600.0, "tank_limit": 520000.0 },
+          "visuals": { "core_color": "#b9bfcb" }
+        },
+        {
+          "id": "bulk_plates_1",
+          "index": 1,
+          "name": "Titanium frame ring",
+          "tier": "SLS Block 1B / 2",
+          "description": "Better structural headroom for longer stages and dynamic bending loads.",
+          "cost_m": 2.1,
+          "physics": { "dry_mass": 4800.0, "ref_area": 0.16, "length": 2.5, "cg_dry": 0.47, "cg_prop": 0.48, "static_margin": 0.07, "q_alpha_limit": 3500.0, "tank_limit": 640000.0 },
+          "visuals": { "core_color": "#d3d7de" }
+        },
+        {
+          "id": "bulk_plates_2",
+          "index": 2,
+          "name": "Composite exoskeleton",
+          "tier": "Starship V3",
+          "description": "Advanced composite rings with large safety margin and low mass penalty.",
+          "cost_m": 3.0,
+          "physics": { "dry_mass": 6100.0, "ref_area": 0.2, "length": 3.2, "cg_dry": 0.48, "cg_prop": 0.48, "static_margin": 0.12, "q_alpha_limit": 4300.0, "tank_limit": 790000.0 },
+          "visuals": { "core_color": "#edf1f7" }
+        }
+      ]
+    },
+    {
+      "id": "payload_adapter",
+      "name": "Payload adapter",
+      "description": "Connection between the payload and the upper stage.",
+      "options": [
+        {
+          "id": "payload_adapter_0",
+          "index": 0,
+          "name": "Standard clamp ring",
+          "tier": "SLS Block 1",
+          "description": "Foundational payload interface for light to medium payloads.",
+          "cost_m": 1.1,
+          "physics": { "dry_mass": 1200.0, "ref_area": 0.16, "length": 2.0, "cg_dry": 0.5, "cg_prop": 0.5, "static_margin": 0.04, "q_alpha_limit": 2400.0 },
+          "visuals": { "core_color": "#c8cbc2" }
+        },
+        {
+          "id": "payload_adapter_1",
+          "index": 1,
+          "name": "Dual-bay adapter",
+          "tier": "SLS Block 1B / 2",
+          "description": "Allows dual-stack payloads while preserving stage stiffness.",
+          "cost_m": 1.9,
+          "physics": { "dry_mass": 1700.0, "ref_area": 0.22, "length": 2.8, "cg_dry": 0.52, "cg_prop": 0.52, "static_margin": 0.07, "q_alpha_limit": 3300.0 },
+          "visuals": { "core_color": "#d4d8cc" }
+        },
+        {
+          "id": "payload_adapter_2",
+          "index": 2,
+          "name": "High-mass docking collar",
+          "tier": "Starship V3",
+          "description": "Larger, stronger interface for deep-space cargo and station modules.",
+          "cost_m": 2.8,
+          "physics": { "dry_mass": 2400.0, "ref_area": 0.27, "length": 3.5, "cg_dry": 0.53, "cg_prop": 0.54, "static_margin": 0.11, "q_alpha_limit": 4100.0 },
+          "visuals": { "core_color": "#e4e7e1" }
+        }
+      ]
+    },
+    {
+      "id": "frames_skirt",
+      "name": "Frames / skirt",
+      "description": "Inter-stage skirt and frame stiffness.",
+      "options": [
+        {
+          "id": "frames_skirt_0",
+          "index": 0,
+          "name": "Light skirt",
+          "tier": "SLS Block 1",
+          "description": "Conventional frame ring for payload support and staging alignment.",
+          "cost_m": 1.0,
+          "physics": { "dry_mass": 2300.0, "ref_area": 0.18, "length": 2.6, "cg_dry": 0.49, "cg_prop": 0.49, "static_margin": 0.05, "q_alpha_limit": 2900.0 },
+          "visuals": { "core_color": "#bfc4d1" }
+        },
+        {
+          "id": "frames_skirt_1",
+          "index": 1,
+          "name": "Reinforced skirt",
+          "tier": "SLS Block 1B / 2",
+          "description": "Heavier frame to keep resonances under control during ascent.",
+          "cost_m": 1.7,
+          "physics": { "dry_mass": 3200.0, "ref_area": 0.22, "length": 3.3, "cg_dry": 0.5, "cg_prop": 0.5, "static_margin": 0.08, "q_alpha_limit": 3600.0 },
+          "visuals": { "core_color": "#d7dce5" }
+        },
+        {
+          "id": "frames_skirt_2",
+          "index": 2,
+          "name": "V3 stress frame",
+          "tier": "Starship V3",
+          "description": "Large-area structural skirt for extremely heavy payloads and long burns.",
+          "cost_m": 2.5,
+          "physics": { "dry_mass": 4700.0, "ref_area": 0.28, "length": 4.2, "cg_dry": 0.52, "cg_prop": 0.52, "static_margin": 0.09, "q_alpha_limit": 4500.0 },
+          "visuals": { "core_color": "#ecf1f6" }
+        }
+      ]
+    },
+    {
+      "id": "fairings",
+      "name": "Fairing / payload shroud",
+      "description": "Thermal protection around the payload and upper stage.",
+      "options": [
+        {
+          "id": "fairings_0",
+          "index": 0,
+          "name": "Composite fairing",
+          "tier": "SLS Block 1",
+          "description": "Lower-cost protective shell with moderate thermal margin.",
+          "cost_m": 1.8,
+          "physics": { "dry_mass": 2600.0, "ref_area": 0.27, "length": 6.1, "cg_dry": 0.54, "cg_prop": 0.54, "static_margin": 0.1, "q_alpha_limit": 3100.0, "heat_limit": 98000.0 },
+          "visuals": { "core_color": "#d9dfe8" }
+        },
+        {
+          "id": "fairings_1",
+          "index": 1,
+          "name": "Carbon shell",
+          "tier": "SLS Block 1B / 2",
+          "description": "Taller, stiffer fairing to preserve drag during ascent.",
+          "cost_m": 2.9,
+          "physics": { "dry_mass": 3700.0, "ref_area": 0.34, "length": 7.8, "cg_dry": 0.55, "cg_prop": 0.55, "static_margin": 0.11, "q_alpha_limit": 3900.0, "heat_limit": 138000.0 },
+          "visuals": { "core_color": "#edf4ff" }
+        },
+        {
+          "id": "fairings_2",
+          "index": 2,
+          "name": "Starship large bay",
+          "tier": "Starship V3",
+          "description": "Very large payload shroud for cargo and deep-space missions.",
+          "cost_m": 4.1,
+          "physics": { "dry_mass": 5200.0, "ref_area": 0.44, "length": 9.4, "cg_dry": 0.57, "cg_prop": 0.57, "static_margin": 0.13, "q_alpha_limit": 4700.0, "heat_limit": 176000.0 },
+          "visuals": { "core_color": "#f3f7ff" }
+        }
+      ]
+    },
+    {
+      "id": "control_fins",
+      "name": "Control fins",
+      "description": "Aerodynamic control surfaces and pitch authority.",
+      "options": [
+        {
+          "id": "control_fins_0",
+          "index": 0,
+          "name": "Split rudder",
+          "tier": "SLS Block 1",
+          "description": "Modest fins for steady control at lower dynamic pressure.",
+          "cost_m": 1.2,
+          "physics": { "dry_mass": 1400.0, "ref_area": 0.11, "length": 1.8, "cg_dry": 0.45, "cg_prop": 0.46, "static_margin": 0.08, "gimbal_max": 1.2, "q_alpha_limit": 2600.0 },
+          "visuals": { "core_color": "#b5c0c9" }
+        },
+        {
+          "id": "control_fins_1",
+          "index": 1,
+          "name": "Canted boost fins",
+          "tier": "SLS Block 1B / 2",
+          "description": "Larger fins with improved turning authority and center-pressure control.",
+          "cost_m": 2.0,
+          "physics": { "dry_mass": 2400.0, "ref_area": 0.17, "length": 2.5, "cg_dry": 0.46, "cg_prop": 0.47, "static_margin": 0.11, "gimbal_max": 1.5, "q_alpha_limit": 3500.0 },
+          "visuals": { "core_color": "#d2d9df" }
+        },
+        {
+          "id": "control_fins_2",
+          "index": 2,
+          "name": "Aero vector fins",
+          "tier": "Starship V3",
+          "description": "Large control surfaces with high roll damping and active pitch correction.",
+          "cost_m": 3.3,
+          "physics": { "dry_mass": 3600.0, "ref_area": 0.23, "length": 3.0, "cg_dry": 0.47, "cg_prop": 0.48, "static_margin": 0.14, "gimbal_max": 1.8, "q_alpha_limit": 4400.0 },
+          "visuals": { "core_color": "#edf2f8" }
+        }
+      ]
+    },
+    {
+      "id": "upper_stage",
+      "name": "Upper stage",
+      "description": "Secondary propulsion stage and upper-body support structure.",
+      "options": [
+        {
+          "id": "upper_stage_0",
+          "index": 0,
+          "name": "Storable upper stage",
+          "tier": "SLS Block 1",
+          "description": "Small upper stage for orbital insertion and limited payload margin.",
+          "cost_m": 3.2,
+          "physics": { "dry_mass": 14200.0, "propellant": 52000.0, "thrust_sl": 0.0, "thrust_vac": 928000.0, "isp_vac": 330.0, "ref_area": 1.1, "length": 14.0, "cg_dry": 0.58, "cg_prop": 0.62, "static_margin": 0.09, "gimbal_max": 1.1, "tank_limit": 430000.0 },
+          "visuals": { "core_color": "#b7b9be", "height_scale": 1.0 }
+        },
+        {
+          "id": "upper_stage_1",
+          "index": 1,
+          "name": "Cryo upper stage",
+          "tier": "SLS Block 1B / 2",
+          "description": "Higher propellant capacity and stronger deep-space capability.",
+          "cost_m": 5.1,
+          "physics": { "dry_mass": 17400.0, "propellant": 76000.0, "thrust_sl": 0.0, "thrust_vac": 1180000.0, "isp_vac": 342.0, "ref_area": 1.34, "length": 17.2, "cg_dry": 0.6, "cg_prop": 0.64, "static_margin": 0.12, "gimbal_max": 1.35, "tank_limit": 560000.0 },
+          "visuals": { "core_color": "#dfe6ef", "height_scale": 1.12 }
+        },
+        {
+          "id": "upper_stage_2",
+          "index": 2,
+          "name": "High-Isp vacuum stage",
+          "tier": "Starship V3",
+          "description": "Large upper stage optimized for interplanetary delta-v and efficient in-space burns.",
+          "cost_m": 7.4,
+          "physics": { "dry_mass": 22000.0, "propellant": 104000.0, "thrust_sl": 0.0, "thrust_vac": 1550000.0, "isp_vac": 360.0, "ref_area": 1.7, "length": 19.7, "cg_dry": 0.61, "cg_prop": 0.66, "static_margin": 0.14, "gimbal_max": 1.6, "tank_limit": 680000.0 },
+          "visuals": { "core_color": "#eef4ff", "height_scale": 1.25 }
+        }
+      ]
+    },
+    {
+      "id": "upper_stage_engine",
+      "name": "Upper stage engine",
+      "description": "Vacuum-optimized propulsion unit for the upper stage.",
+      "options": [
+        {
+          "id": "upper_stage_engine_0",
+          "index": 0,
+          "name": "RL-10 derivative",
+          "tier": "SLS Block 1",
+          "description": "Efficient hydrogen engine with moderate thrust and long burn times.",
+          "cost_m": 2.8,
+          "physics": { "dry_mass": 2800.0, "propellant": 0.0, "thrust_sl": 0.0, "thrust_vac": 460000.0, "isp_vac": 448.0, "ref_area": 0.36, "length": 3.4, "cg_dry": 0.6, "cg_prop": 0.64, "static_margin": 0.08, "gimbal_max": 1.0 },
+          "visuals": { "core_color": "#c7d6ef" }
+        },
+        {
+          "id": "upper_stage_engine_1",
+          "index": 1,
+          "name": "Aero-optimised vacuum motor",
+          "tier": "SLS Block 1B / 2",
+          "description": "High-thrust vacuum engine with better startup margin and deep-space profile.",
+          "cost_m": 4.2,
+          "physics": { "dry_mass": 3500.0, "propellant": 0.0, "thrust_sl": 0.0, "thrust_vac": 640000.0, "isp_vac": 462.0, "ref_area": 0.42, "length": 4.0, "cg_dry": 0.61, "cg_prop": 0.65, "static_margin": 0.11, "gimbal_max": 1.25 },
+          "visuals": { "core_color": "#dfe9f7" }
+        },
+        {
+          "id": "upper_stage_engine_2",
+          "index": 2,
+          "name": "Raptor-class vacuum engine",
+          "tier": "Starship V3",
+          "description": "Very high-thrust methane/oxygen engine optimized for vacuum efficiency.",
+          "cost_m": 5.8,
+          "physics": { "dry_mass": 4600.0, "propellant": 0.0, "thrust_sl": 0.0, "thrust_vac": 885000.0, "isp_vac": 380.0, "ref_area": 0.52, "length": 4.6, "cg_dry": 0.63, "cg_prop": 0.67, "static_margin": 0.15, "gimbal_max": 1.45 },
+          "visuals": { "core_color": "#eff5ff" }
+        }
+      ]
+    },
+    {
+      "id": "core_structure",
+      "name": "Core structure / fuselage",
+      "description": "Main tank support, skin, and stage body shell.",
+      "options": [
+        {
+          "id": "core_structure_0",
+          "index": 0,
+          "name": "Thin-shell LWT core",
+          "tier": "SLS Block 1",
+          "description": "Relatively light central barrel for a conventional launch profile.",
+          "cost_m": 2.7,
+          "physics": { "dry_mass": 14600.0, "ref_area": 1.0, "length": 18.0, "cg_dry": 0.5, "cg_prop": 0.5, "static_margin": 0.07, "q_alpha_limit": 2600.0, "tank_limit": 520000.0 },
+          "visuals": { "core_color": "#727a83" }
+        },
+        {
+          "id": "core_structure_1",
+          "index": 1,
+          "name": "Composite barrel",
+          "tier": "SLS Block 1B / 2",
+          "description": "Larger and stiffer stage shell for higher launch load and improved thermal margin.",
+          "cost_m": 4.1,
+          "physics": { "dry_mass": 19800.0, "ref_area": 1.28, "length": 21.0, "cg_dry": 0.51, "cg_prop": 0.51, "static_margin": 0.1, "q_alpha_limit": 3400.0, "tank_limit": 620000.0 },
+          "visuals": { "core_color": "#98a4b6" }
+        },
+        {
+          "id": "core_structure_2",
+          "index": 2,
+          "name": "Full stainless barrel",
+          "tier": "Starship V3",
+          "description": "Very large monocoque structure with high pressure and thermal headroom.",
+          "cost_m": 5.9,
+          "physics": { "dry_mass": 26800.0, "ref_area": 1.52, "length": 24.2, "cg_dry": 0.52, "cg_prop": 0.52, "static_margin": 0.13, "q_alpha_limit": 4200.0, "tank_limit": 760000.0 },
+          "visuals": { "core_color": "#d9e1ee" }
+        }
+      ]
+    },
+    {
+      "id": "propellant_tanks",
+      "name": "Propellant tanks",
+      "description": "Main oxidizer and fuel hold for the stage.",
+      "options": [
+        {
+          "id": "propellant_tanks_0",
+          "index": 0,
+          "name": "Standard cylindrical tanks",
+          "tier": "SLS Block 1",
+          "description": "A moderate-capacity tank set for conventional ground-to-orbit ascent.",
+          "cost_m": 2.6,
+          "physics": { "dry_mass": 11800.0, "propellant": 145000.0, "ref_area": 2.4, "length": 18.4, "cg_dry": 0.48, "cg_prop": 0.56, "static_margin": 0.08, "tank_limit": 520000.0, "prop_density": 1040.0, "column": 4.8 },
+          "visuals": { "core_color": "#a7b4c1" }
+        },
+        {
+          "id": "propellant_tanks_1",
+          "index": 1,
+          "name": "Extended tank dome",
+          "tier": "SLS Block 1B / 2",
+          "description": "Larger tank volume and stronger load paths for longer ascent burns.",
+          "cost_m": 4.0,
+          "physics": { "dry_mass": 15600.0, "propellant": 205000.0, "ref_area": 2.9, "length": 22.5, "cg_dry": 0.5, "cg_prop": 0.58, "static_margin": 0.11, "tank_limit": 650000.0, "prop_density": 1080.0, "column": 5.8 },
+          "visuals": { "core_color": "#c7d5eb" }
+        },
+        {
+          "id": "propellant_tanks_2",
+          "index": 2,
+          "name": "Starship tank stack",
+          "tier": "Starship V3",
+          "description": "High-volume tank set for maximum deep-space range and methane/oxygen flexibility.",
+          "cost_m": 6.5,
+          "physics": { "dry_mass": 21400.0, "propellant": 285000.0, "ref_area": 3.4, "length": 26.5, "cg_dry": 0.52, "cg_prop": 0.6, "static_margin": 0.14, "tank_limit": 820000.0, "prop_density": 1135.0, "column": 6.7 },
+          "visuals": { "core_color": "#edf5ff" }
+        }
+      ]
+    },
+    {
+      "id": "main_engines",
+      "name": "Main engines (core)",
+      "description": "Clustered sea-level and vacuum propulsion for the main stack.",
+      "options": [
+        {
+          "id": "main_engines_0",
+          "index": 0,
+          "name": "RS-25 class cluster",
+          "tier": "SLS Block 1",
+          "description": "Four methane/rp1-class engines with medium vacuum efficiency.",
+          "cost_m": 5.1,
+          "physics": { "dry_mass": 9000.0, "propellant": 0.0, "thrust_sl": 4200000.0, "thrust_vac": 4600000.0, "isp_vac": 320.0, "ref_area": 0.62, "length": 2.8, "cg_dry": 0.44, "cg_prop": 0.46, "gimbal_max": 1.1 },
+          "visuals": { "core_color": "#e1d6b9", "side_booster_count": 2 }
+        },
+        {
+          "id": "main_engines_1",
+          "index": 1,
+          "name": "Advanced booster cluster",
+          "tier": "SLS Block 1B / 2",
+          "description": "Higher thrust and better chamber pressure for larger stage loads.",
+          "cost_m": 7.1,
+          "physics": { "dry_mass": 12200.0, "propellant": 0.0, "thrust_sl": 5600000.0, "thrust_vac": 6100000.0, "isp_vac": 332.0, "ref_area": 0.8, "length": 3.4, "cg_dry": 0.45, "cg_prop": 0.47, "gimbal_max": 1.4 },
+          "visuals": { "core_color": "#e7d7b2", "side_booster_count": 2 }
+        },
+        {
+          "id": "main_engines_2",
+          "index": 2,
+          "name": "Raptor booster cluster",
+          "tier": "Starship V3",
+          "description": "High-thrust methane/oxygen cluster with strong vacuum performance and rapid burn-through to orbit.",
+          "cost_m": 9.7,
+          "physics": { "dry_mass": 16000.0, "propellant": 0.0, "thrust_sl": 7600000.0, "thrust_vac": 8200000.0, "isp_vac": 345.0, "ref_area": 1.0, "length": 4.0, "cg_dry": 0.46, "cg_prop": 0.48, "gimbal_max": 1.7 },
+          "visuals": { "core_color": "#f0dfbc", "side_booster_count": 0 }
+        }
+      ]
+    },
+    {
+      "id": "side_boosters",
+      "name": "Side boosters / strap-ons",
+      "description": "Solid or liquid boosters flanking the main core.",
+      "options": [
+        {
+          "id": "side_boosters_0",
+          "index": 0,
+          "name": "Two solid boosters",
+          "tier": "SLS Block 1",
+          "description": "Reliable strap-on boosters with conservative load path and moderate plume profile.",
+          "cost_m": 3.4,
+          "physics": { "dry_mass": 12000.0, "propellant": 76000.0, "thrust_sl": 2800000.0, "thrust_vac": 3010000.0, "isp_vac": 270.0, "ref_area": 0.58, "length": 22.0, "cg_dry": 0.43, "cg_prop": 0.56, "gimbal_max": 0.9 },
+          "visuals": { "core_color": "#dfe6f0", "side_booster_count": 2 }
+        },
+        {
+          "id": "side_boosters_1",
+          "index": 1,
+          "name": "Extended liquid boosters",
+          "tier": "SLS Block 1B / 2",
+          "description": "Longer boosters with more propellant and more useful early boost.",
+          "cost_m": 5.4,
+          "physics": { "dry_mass": 18200.0, "propellant": 111000.0, "thrust_sl": 3940000.0, "thrust_vac": 4300000.0, "isp_vac": 295.0, "ref_area": 0.75, "length": 27.0, "cg_dry": 0.44, "cg_prop": 0.58, "gimbal_max": 1.1 },
+          "visuals": { "core_color": "#edf4ff", "side_booster_count": 2 }
+        },
+        {
+          "id": "side_boosters_2",
+          "index": 2,
+          "name": "No boosters / all-core",
+          "tier": "Starship V3",
+          "description": "Full-core architecture without side boosters to minimize drag and simplify staging.",
+          "cost_m": 0.0,
+          "physics": { "dry_mass": 0.0, "propellant": 0.0, "thrust_sl": 0.0, "thrust_vac": 0.0, "isp_vac": 0.0, "ref_area": 0.0, "length": 0.0, "cg_dry": 0.5, "cg_prop": 0.5, "gimbal_max": 0.0 },
+          "visuals": { "core_color": "#e7eef8", "side_booster_count": 0 }
+        }
+      ]
+    },
+    {
+      "id": "gimbal_system",
+      "name": "Gimbal / vector control",
+      "description": "Thrust vector control and steering authority.",
+      "options": [
+        {
+          "id": "gimbal_system_0",
+          "index": 0,
+          "name": "Single-axis gimbal",
+          "tier": "SLS Block 1",
+          "description": "Basic vector control with conservative turning authority.",
+          "cost_m": 1.1,
+          "physics": { "dry_mass": 900.0, "ref_area": 0.05, "length": 1.1, "cg_dry": 0.49, "cg_prop": 0.49, "static_margin": 0.06, "gimbal_max": 1.2 },
+          "visuals": { "core_color": "#b9c4cf" }
+        },
+        {
+          "id": "gimbal_system_1",
+          "index": 1,
+          "name": "Dual-axis TVC",
+          "tier": "SLS Block 1B / 2",
+          "description": "Improved steering authority and more stable ascent during transonic flight.",
+          "cost_m": 1.9,
+          "physics": { "dry_mass": 1500.0, "ref_area": 0.08, "length": 1.5, "cg_dry": 0.5, "cg_prop": 0.5, "static_margin": 0.09, "gimbal_max": 1.5 },
+          "visuals": { "core_color": "#d3dce5" }
+        },
+        {
+          "id": "gimbal_system_2",
+          "index": 2,
+          "name": "Advanced active TVC",
+          "tier": "Starship V3",
+          "description": "High authority thruster steering for aggressive pitch and altitude profiles.",
+          "cost_m": 2.8,
+          "physics": { "dry_mass": 2300.0, "ref_area": 0.12, "length": 2.1, "cg_dry": 0.51, "cg_prop": 0.51, "static_margin": 0.13, "gimbal_max": 1.9 },
+          "visuals": { "core_color": "#edf2f9" }
+        }
+      ]
+    },
+    {
+      "id": "thermal_protection",
+      "name": "Thermal protection",
+      "description": "Heat shield and nose ablative insulation.",
+      "options": [
+        {
+          "id": "thermal_protection_0",
+          "index": 0,
+          "name": "Steel heat tiles",
+          "tier": "SLS Block 1",
+          "description": "Conventional high-temperature tiles for launch and reentry loads.",
+          "cost_m": 1.3,
+          "physics": { "dry_mass": 1800.0, "ref_area": 0.1, "length": 1.3, "cg_dry": 0.52, "cg_prop": 0.52, "static_margin": 0.05, "heat_limit": 120000.0 },
+          "visuals": { "core_color": "#d8d1bf" }
+        },
+        {
+          "id": "thermal_protection_1",
+          "index": 1,
+          "name": "Ceramic matrix shell",
+          "tier": "SLS Block 1B / 2",
+          "description": "Higher tolerance to repeated losses and stronger aerodynamic heating exposure.",
+          "cost_m": 2.2,
+          "physics": { "dry_mass": 2600.0, "ref_area": 0.14, "length": 1.8, "cg_dry": 0.54, "cg_prop": 0.54, "static_margin": 0.09, "heat_limit": 132000.0 },
+          "visuals": { "core_color": "#f2d8b6" }
+        },
+        {
+          "id": "thermal_protection_2",
+          "index": 2,
+          "name": "Ablative star shield",
+          "tier": "Starship V3",
+          "description": "High-capacity thermal blanket for interplanetary atmospheric entry and long stagnation heating.",
+          "cost_m": 3.5,
+          "physics": { "dry_mass": 3900.0, "ref_area": 0.2, "length": 2.3, "cg_dry": 0.56, "cg_prop": 0.56, "static_margin": 0.12, "heat_limit": 190000.0 },
+          "visuals": { "core_color": "#f4d2b1" }
+        }
+      ]
+    },
+    {
+      "id": "separation_system",
+      "name": "Separation / staging",
+      "description": "Separation system, explosive bolts, and stage release logic.",
+      "options": [
+        {
+          "id": "separation_system_0",
+          "index": 0,
+          "name": "Bolt ring",
+          "tier": "SLS Block 1",
+          "description": "Conservative separation system with simple pyrotechnic release assembly.",
+          "cost_m": 0.9,
+          "physics": { "dry_mass": 1100.0, "ref_area": 0.04, "length": 1.2, "cg_dry": 0.48, "cg_prop": 0.48, "static_margin": 0.05, "q_alpha_limit": 2500.0 },
+          "visuals": { "core_color": "#d3d8dd" }
+        },
+        {
+          "id": "separation_system_1",
+          "index": 1,
+          "name": "Linear separation rails",
+          "tier": "SLS Block 1B / 2",
+          "description": "Higher-performance separation rails with improved structural retention.",
+          "cost_m": 1.6,
+          "physics": { "dry_mass": 1700.0, "ref_area": 0.07, "length": 1.8, "cg_dry": 0.49, "cg_prop": 0.49, "static_margin": 0.07, "q_alpha_limit": 3300.0 },
+          "visuals": { "core_color": "#e3eaf3" }
+        },
+        {
+          "id": "separation_system_2",
+          "index": 2,
+          "name": "Active stage release",
+          "tier": "Starship V3",
+          "description": "High-speed, low-drift separation with active timing and load balancing.",
+          "cost_m": 2.7,
+          "physics": { "dry_mass": 2600.0, "ref_area": 0.1, "length": 2.4, "cg_dry": 0.5, "cg_prop": 0.5, "static_margin": 0.11, "q_alpha_limit": 4200.0 },
+          "visuals": { "core_color": "#f1f5fa" }
+        }
+      ]
+    },
+    {
+      "id": "parachute_recovery",
+      "name": "Parachute / recovery",
+      "description": "Recovery and descent control after stage separation or payload return.",
+      "options": [
+        {
+          "id": "parachute_recovery_0",
+          "index": 0,
+          "name": "Standard canopy",
+          "tier": "SLS Block 1",
+          "description": "Simple drogue and main canopy for stable low-rate recovery.",
+          "cost_m": 0.7,
+          "physics": { "dry_mass": 800.0, "ref_area": 0.03, "length": 0.9, "cg_dry": 0.4, "cg_prop": 0.4, "static_margin": 0.04 },
+          "visuals": { "core_color": "#dfe4e8", "escape_tower_visible": true }
+        },
+        {
+          "id": "parachute_recovery_1",
+          "index": 1,
+          "name": "High-altitude recovery",
+          "tier": "SLS Block 1B / 2",
+          "description": "Higher-capacity recovery system for stage and payload returns.",
+          "cost_m": 1.4,
+          "physics": { "dry_mass": 1440.0, "ref_area": 0.05, "length": 1.3, "cg_dry": 0.42, "cg_prop": 0.42, "static_margin": 0.07 },
+          "visuals": { "core_color": "#ebf2f8", "escape_tower_visible": true }
+        },
+        {
+          "id": "parachute_recovery_2",
+          "index": 2,
+          "name": "Precision landing kit",
+          "tier": "Starship V3",
+          "description": "High-performance descent control and landing resilience for return missions.",
+          "cost_m": 2.4,
+          "physics": { "dry_mass": 2300.0, "ref_area": 0.08, "length": 1.8, "cg_dry": 0.43, "cg_prop": 0.43, "static_margin": 0.1 },
+          "visuals": { "core_color": "#f7fbff", "escape_tower_visible": false }
+        }
+      ]
+    }
+  ]
+}

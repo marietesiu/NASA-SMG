@@ -31,6 +31,16 @@ var _velocities: PackedVector3Array = [] # km/s, Godot axes
 
 
 func _ready() -> void:
+	var mission := _read_mission_config()
+	if mission.has("target_altitude_km"):
+		var altitude := float(mission.get("target_altitude_km", altitude_km))
+		if altitude > 0.0 and altitude < 2000.0:
+			altitude_km = altitude
+	if mission.has("target_inclination_deg"):
+		var inclination := float(mission.get("target_inclination_deg", inclination_deg))
+		if inclination >= 0.0 and inclination <= 180.0:
+			inclination_deg = inclination
+
 	var home: String = gmat_home
 	if home.is_empty():
 		home = OS.get_environment("GMAT_HOME")
@@ -50,6 +60,21 @@ func _ready() -> void:
 
 	_thread = Thread.new()
 	_thread.start(_run_gmat.bind(bin_dir.path_join("GmatConsole"), script_path, report_path))
+
+
+func _read_mission_config() -> Dictionary:
+	var path := ProjectSettings.globalize_path("res://mission_config.json")
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var json := JSON.new()
+	var err := json.parse(file.get_as_text())
+	if err != OK:
+		return {}
+	var data: Variant = json.data
+	return data if typeof(data) == TYPE_DICTIONARY else {}
 
 
 func _exit_tree() -> void:

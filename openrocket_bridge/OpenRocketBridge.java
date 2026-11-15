@@ -81,6 +81,7 @@ public class OpenRocketBridge {
             double thrustScale = 1.0;
             double maxSpeed = Double.POSITIVE_INFINITY;
             Vehicle vehicle = null;
+            boolean calm = false;
             for (int i = 2; i < args.length; i++) {
                 switch (args[i]) {
                     case "--infinite-fuel" -> infiniteFuel = true;
@@ -90,6 +91,7 @@ public class OpenRocketBridge {
                     case "--thrust-scale" -> thrustScale = Double.parseDouble(args[++i]);
                     case "--vehicle" -> vehicle = new Vehicle(args[++i]);
                     case "--calm" -> {
+                        calm = true;
                         SimulationOptions options = sim.getOptions();
                         options.setWindSpeedAverage(0);
                         options.setWindSpeedDeviation(0);
@@ -125,7 +127,7 @@ public class OpenRocketBridge {
                 vehicle.modelLength = sim.getActiveConfiguration().getLength();
                 sim.getOptions().setMaxSimulationTime(Math.max(600, sim.getOptions().getMaxSimulationTime()));
                 sim.getOptions().setLaunchRodAngle(0);
-                sim.simulate(new VehicleFlight(out, vehicle), streamer);
+                sim.simulate(new VehicleFlight(out, vehicle, calm), streamer);
             } else {
                 sim.simulate(streamer);
             }
@@ -194,7 +196,7 @@ public class OpenRocketBridge {
         private double maxQ = 0, maxQAlpha = 0, maxTank = 0, maxHeat = 0, maxAccel = 0, maxTilt = 0, maxGimbal = 0;
         private double gimbal = 0;
 
-        VehicleFlight(PrintStream out, Vehicle v) {
+        VehicleFlight(PrintStream out, Vehicle v, boolean calm) {
             this.out = out;
             this.v = v;
             dryMass = v.get("dry_mass");
@@ -215,8 +217,8 @@ public class OpenRocketBridge {
             column = v.get("column");
             heatLimit = v.get("heat_limit");
             noseRadius = v.get("nose_radius");
-            windGround = v.get("wind_ground");
-            windJet = v.get("wind_jet");
+            windGround = calm ? 0 : v.get("wind_ground");
+            windJet = calm ? 0 : v.get("wind_jet");
         }
 
         private boolean burning() {
