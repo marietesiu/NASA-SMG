@@ -34,11 +34,11 @@ fog_sky_affect = 0.0
 script = ExtResource("1_landing")
 body = 1
 sun_from = Vector3(-0.5, 0.6, 0.62)
-approach_start = Vector3(-120, 185, 0)
-burn_altitude = 120.0
-burn_speed = 44.0
+approach_start = Vector3(-125, 160, 0)
+burn_altitude = 78.0
+burn_speed = 36.0
 camera_position = Vector3(-20, 1.7, 215)
-camera_target = Vector3(-30, 76, 0)
+camera_target = Vector3(-30, 70, 0)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Env_res")

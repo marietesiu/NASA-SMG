@@ -21,15 +21,22 @@ const LAYERS: Array[Dictionary] = [
 		"sky_top": Color(0.0, 0.0, 0.02), "sky_horizon": Color(0.02, 0.03, 0.1), "stars": 1.0},
 ]
 
-## Scene metres per real metre of the OpenRocket trajectory. Below 1 the world is
-## compressed, so the rocket crosses fewer of its own lengths per second.
 ## Missions that end on another world, and the scene that lands there.
 const LANDING_SCENES := {
 	"to_the_moon": "res://moon_landing.tscn",
 	"delivering_to_mars": "res://mars_landing.tscn",
 }
 
+## Scene metres per real metre of the OpenRocket trajectory. Below 1 the world is
+## compressed, so the rocket crosses fewer of its own lengths per second.
 @export var altitude_scale: float = 0.08
+@export_group("Moon and Mars missions")
+## The whole Earth ascent is played back in this many seconds...
+@export var landing_mission_ascent_time: float = 13.0
+## ...and "Successful Launch" stays up this long before the landing scene opens,
+## so the rocket is on its way 15 s after liftoff.
+@export var landing_mission_success_hold: float = 2.0
+@export_group("")
 ## Seconds between reaching the third layer and the camera stopping.
 @export var camera_stop_delay: float = 3.0
 ## Seconds "Successful Launch" stays up before the orbit view starts.
@@ -149,6 +156,9 @@ func _load_build_data() -> Dictionary:
 
 
 func _ready() -> void:
+	if LANDING_SCENES.has(_read_mission_config().get("mission_id", "")):
+		_sim.playback_duration = landing_mission_ascent_time
+		success_hold = landing_mission_success_hold
 	_sim.ready_to_launch.connect(_on_ready_to_launch)
 	_sim.failed.connect(_on_failed.bind("OpenRocket"))
 	_orbit.failed.connect(_on_orbit_failed)

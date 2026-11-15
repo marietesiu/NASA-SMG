@@ -35,8 +35,15 @@ signal failed(message: String)
 ## No wind and a vertical launch rod, so the rocket flies straight.
 @export var calm_air: bool = true
 
+## Play the whole recorded flight back in this many real seconds (0 = real time). Only the
+## playback is compressed: the flight itself, and the frame rate, stay as OpenRocket computed them.
+@export var playback_duration: float = 0.0
+## Playback speed used until OpenRocket has finished and the flight's length is known.
+@export var provisional_playback_speed: float = 8.0
+
 ## Seconds of flight played back so far.
 var sim_time: float = 0.0
+var _playback_elapsed: float = 0.0
 var launched: bool = false
 ## True once playback reached the end of the simulated flight.
 var finished: bool = false
@@ -86,7 +93,16 @@ func _process(delta: float) -> void:
 	if not launched or finished or _times.is_empty():
 		return
 	var last_time: float = _times[_times.size() - 1]
-	sim_time = minf(sim_time + delta, last_time)
+	var step: float = delta
+	if playback_duration > 0.0:
+		_playback_elapsed += delta
+		if _sim_done:
+			# Spread what is left of the flight over what is left of the playback time.
+			var real_left: float = maxf(playback_duration - _playback_elapsed, 0.0) + delta
+			step = (last_time - sim_time) * delta / real_left
+		else:
+			step = delta * provisional_playback_speed
+	sim_time = minf(sim_time + step, last_time)
 	while _next_event < _events.size() and _events[_next_event].time <= sim_time:
 		flight_event.emit(_events[_next_event].type, _events[_next_event].time)
 		_next_event += 1

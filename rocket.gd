@@ -392,3 +392,9 @@ func deploy_legs(duration: float) -> void:
 ## Lander engine on or off.
 func set_engine(on: bool) -> void:
 	_set_burning(on)
+
+
+## Lander engine deflection (rad): swings the exhaust plume sideways, as a gimballed nozzle does.
+func set_gimbal(angle: float) -> void:
+	if not _flames.is_empty():
+		_flames[0].rotation.z = angle
